@@ -26,7 +26,7 @@ DSAD-ASE/
 ├── exercitii/
 │   ├── 01_Magazine/              ← antrenament partea A (filtrare, procente, merge, groupby)
 │   └── 02_Ferme/                 ← antrenament partea A, cu rezolvare explicată
-└── din_D_DSAD/                   ← (de completat) conținutul folderului D:\DSAD
+└── din_D_DSAD/                   ← conținutul folderului D:\DSAD (subiecte rezolvate pe toate metodele, fițuici)
 ```
 
 ## Cum rulezi o rezolvare

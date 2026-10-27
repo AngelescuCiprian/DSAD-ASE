@@ -1,0 +1,1842 @@
+# Subiect A
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.cross_decomposition import CCA
+import matplotlib.pyplot as plt
+
+industrie = pd.read_csv("dataIN/Industrie.csv", index_col=False)
+print(industrie)
+
+populatie = pd.read_csv("dataIN/PopulatieLocalitati.csv", index_col=False)
+print(populatie)
+
+ramuri_industrie = industrie.iloc[:,2:]
+print(ramuri_industrie)
+
+merged = pd.merge(industrie, populatie, on=["Siruta", "Localitate"])
+print(merged)
+merged["Populatie"] = merged["Populatie"].replace(0,np.nan)
+merged = merged.reset_index()
+
+# Să se salveze în fișierul Cerinta1.csv cifra de afaceri pe locuitor pentru fiecare activitate,
+# la nivel de localitate. Pentru fiecare localitate se va salva codul Siruta, numele localității și
+# cifra de afaceri pe locuitor pentru fiecare activitate.
+
+cifra_afaceri = ramuri_industrie.div(merged["Populatie"], axis=0)
+cerinta1 = pd.concat([merged[["Siruta", "Localitate"]], cifra_afaceri], axis=1)
+cerinta1.to_csv("dataOUT/Cerinta1.csv", index=False)
+
+# Să se calculeze și să se salveze în fișierul Cerinta 2.csv activitatea industrială dominantă
+# (cu cifra de afaceri cea mai mare) la nivel de județ
+rezultate = []
+for judet, grup in merged.groupby("Judet"):
+    doar_numeric = grup.select_dtypes(include=[np.number])
+    suma_activitati = doar_numeric.sum().fillna(0)
+
+    activ_dom = suma_activitati.idxmax()
+    ca_max = suma_activitati.max()
+    rezultate.append({"Judet":judet, "Activitate":activ_dom, "Cifra afaceri":ca_max})
+cerinta2 = pd.DataFrame(rezultate)
+cerinta2.to_csv("dataOUT/Cerinta2.csv", index=False)
+
+# 3. Fișierul DataSet_34.csv conține înregistrări pentru 27 de țări europene cu privire la consumul și producția de diverse
+# tipuri de carne. Variabilele observate sunt următoarele:
+# 1. Producția de carne de porc (1.000 tone);
+# 2. Producția de carne de vită (1.000 tone);
+# 3. Producția de carne de oaie si capra (1.000 tone);
+# 4. Producția de carne de pasăre (1.000 tone);
+# 5. Consumul de carne de porc (kg/persoana/an);
+# 6. Consumul de carne de vită (kg/persoană/an);
+# 7. Consumul de carne de oaie și capră (kg/persoană/an);
+# 8. Consumul de carne de pasăre (kg/persoana/an).
+# Pentru a efectua o analiză canonică a corelației, standardizați valorile variabilelor și împărțiți setul de date inițial
+# în 2 subseturi de date, după cum urmează:
+# - Producția de carne de porc, Producția de carne de vită, Producția de carne de oaie și capră, Producția de
+# pasăre – set X;
+# - Consumul de carne de porc, Consumul de carne de vită, Consumul de carne de oaie și capră, Consumul de
+# pasăre – set Y.
+# Salvați cele 2 subseturi de date standardizate în fișierele Xstd.csv, respectiv Ystd.csv. (1 punct)
+
+# Analiza canonica
+
+date34 = pd.read_csv("dataIN/DataSet_34.csv", index_col=False)
+print(date34)
+
+#standardizare
+scaler = StandardScaler()
+date34 = date34.select_dtypes(include=[np.number])
+date_standard = scaler.fit_transform(date34)
+
+#impartire set de date
+set_productie = ["prodPorc", "prodVite", "prodOaieSiCapra", "prodPasareDeCurte"]
+set_consum = ["consPorc", "consVita", "consumOaieSiCapra", "consPasareDeCurte"]
+
+#extragem datele corespunzatoare pentru X si Y
+x = date34[set_productie]
+y = date34[set_consum]
+
+#standardizare subseturi separat
+x_std = scaler.fit_transform(x)
+y_std = scaler.fit_transform(y)
+
+#convertire la DataFrame
+x_std_df = pd.DataFrame(x_std, columns=set_productie)
+y_std_df = pd.DataFrame(y_std, columns=set_consum)
+
+# 4. Determinați și salvați scorurile canonice z și u, corespunzătoare setului de date X și Y, în fișierele Xscore.csv și
+# respectiv Yscores.csv. (1 punct)
+n = len(date34)
+p = x_std.shape[1]
+q = y_std.shape[1]
+m=min(p,q,7)
+cca = CCA(n_components=m)
+cca.fit(x_std,y_std)
+
+x_scoruri = cca.transform(x_std)
+y_scoruri = cca.transform(y_std)
+
+df_x_scor = pd.DataFrame(x_scoruri, columns=[f"X_C{i+1}" for i in range(x_scoruri.shape[1])])
+df_y_scor = pd.DataFrame(y_scoruri, columns=[f"Y_C{i+1}" for i in range(y_scoruri.shape[1])])
+
+
+df_x_scor.to_csv("dataOUT/Xscore.csv", index=False)
+df_y_scor.to_csv("dataOUT/Yscore.csv", index=False)
+
+# 5. Determinați și salvați corelațiile factoriale corespunzătoare variabilelor din seturile de date X și Y în fișierele Rxz.csv
+# și respectiv Ryu.csv. (1 punct)
+
+# Calcul corelații variabile observate - variabile canonice -> 4 din cheatsheet
+
+# Corelațiile dintre variabilele originale X și scorurile canonice Z
+Rxz = np.corrcoef(x_std.T, x_scoruri.T)[:x_std.shape[1], x_std.shape[1]:]
+
+# Corelațiile dintre variabilele originale Y și scorurile canonice U
+Ryu = np.corrcoef(y_std.T, y_scoruri.T)[:y_std.shape[1], y_std.shape[1]:]
+
+# Convertim în DataFrame pentru salvare
+Rxz_df = pd.DataFrame(Rxz, index=set_productie, columns=[f"X_C{i+1}" for i in range(Rxz.shape[1])])
+Ryu_df = pd.DataFrame(Ryu, index=set_consum, columns=[f"Y_C{i+1}" for i in range(Ryu.shape[1])])
+
+Rxz_df.to_csv("dataOUT/Rxz.csv",index=False)
+Ryu_df.to_csv("dataOUT/Ryu.csv",index=False)
+
+#6. Construiți graficul distribuției observațiilor în spațiul rădăcinilor canonice z1, z2 și u1, u2 - grafic biplot. (3 puncte)plt.figure(figsize=(7, 7))
+plt.title("Biplot (z1, u1) / (z2, u2)")
+plt.xlabel("x")
+plt.ylabel("y")
+plt.scatter(x_std[:, 0], x_std[:, 1], c='r', label='X')
+plt.scatter(y_std[:, 0], y_std[:, 1], c='b', label='Y')
+plt.legend()
+plt.show()
+
+import numpy as np
+import pandas as pd
+from factor_analyzer import FactorAnalyzer
+import matplotlib.pyplot as plt
+
+#citire date fisiere
+coduri = pd.read_csv("dataIN/Coduri_Localitati.csv", index_col=0)
+print(coduri)
+
+diversitate = pd.read_csv("dataIN/Diversitate.csv", index_col=0)
+print(diversitate)
+
+# A. Sa se implementeze urmatoarele cerinte:
+# 1. Sa se calculeze si sa se salveze in fisierul Cerinta1.csv localitatile in care cel putin pentru un an
+# diversitatea a fost 0. Se va salva codul Siruta, denumirea localitatii si indicii de diversitate
+# pentru toti anii.
+
+#lista cu anii din fisierul diversitate -> ca sa vedem care sunt anii -> nu trebuie neaparat
+lista_ani = diversitate.iloc[:,2:].columns
+print(lista_ani)
+
+localitati_cu_zero = [] #am creat un fel de vector/ fisier/ matrice ce mama naibii o fi in care stocam randurile din csv unde am gasit 0
+# index -> Siruta
+# row -> series care contine valorile randului
+for index, row in diversitate.iterrows(): # parcurgem tot csv-ul cu ajutorul acestui for
+    if 0 in row.values[2:]: # verificam daca pentru unul din ani de pe randul respectiv exista valoare 0
+        localitati_cu_zero.append(row) # adaugam la chestia creata de noi randul unde gasim valoarea 0 la ani
+cerinta1 = pd.DataFrame(localitati_cu_zero) # transformam acea chestie intr-un DataFrame
+cerinta1 = cerinta1.reset_index().rename(columns={"index":"Siruta"})
+cerinta1.to_csv("dataOUT/Cerinta1.csv", index=False) # scriem DataFrame-ul intr-un csv
+print("A - cerinta 1 a fost rezolvata")
+
+# 2. Sa se determine pentru fiecare judet localitatea in care diverrsitatea medie (media anilor) este maxima.
+# Rezultatea va fi salvat in fisierul Cerinta2.csv. Se va salva indicativul de judet, localitatea
+# cu diversitatea cu diversitatea medie maxima si valoarea diversitatii medii
+diversitate["Media anilor"] = diversitate.iloc[:, 2:].mean(axis=1)
+merged = pd.merge(coduri,diversitate, on=["Siruta", "Localitate"])
+print(diversitate)
+print(merged)
+
+index_maxim = merged.groupby("Judet")["Media anilor"].idxmax()
+cerinta2 = merged.loc[index_maxim, ["Judet", "Localitate", "Media anilor"]]
+cerinta2 = cerinta2.rename(columns={"Media anilor": "Diversitate maxima"})
+print(cerinta2)
+cerinta2.to_csv("dataOUT/Cerinta2.csv", index=False)
+print("A - cerinta 2 a fost rezolvata")
+
+# B
+# Sa se efectueze analiza factoriala pentru indicii de diversitate, cu rotatie Varimax si sa se furnizeze
+# urmatoarele rezultate:
+
+# 1. Varianta factorilor comuni. se va salva tabelul variantei in fisierul Varinata.csv. Se va salva
+# varianta factorilor, procentul de varianta extrasa si procentul cumulat de varianta
+
+ani = ["2008", "2009", "2010","2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018", "2019", "2020", "2021"]
+
+date_ani = diversitate[ani]
+date_ani = date_ani.dropna() # scoatem valorile lipsa
+
+# facem analiza factoriala cu rotatie varimax
+fa = FactorAnalyzer(n_factors=6, rotation="varimax")
+fa.fit(date_ani)
+
+# calculam varianta
+varianta = fa.get_factor_variance()
+print(varianta)
+
+# ne creeam un DataFrame cu datele cerute
+cerinta1B = pd.DataFrame({
+    "Factor": [f"Factor{i+1}" for i in range(0, len(varianta[0]))], # factorul
+    "Varianta": varianta[0], # varianta factorului
+    "Procent Varianta": varianta[1]*100, # procentul de varianta extrasa
+    "Procent Varianta Cumulat": varianta[2] * 100 # procentul cumulat de varianta
+})
+
+# scriem intr-un csv
+cerinta1B.to_csv("dataOUT/Varianta.csv", index=False)
+print("B - cerinta 1 a fost rezolvata")
+
+# 2. Corelatiile factoriale (corelatiile variabile - factori comuni). Acestea vor fi salvata in fisierul r.csv.
+corelatii_factoriale = fa.loadings_
+cerinta2B = pd.DataFrame(corelatii_factoriale, columns=[f"Factor{i+1}" for i in range(0, corelatii_factoriale.shape[1])])
+cerinta2B.to_csv("dataOUT/r.csv", index=False)
+print("B - cerinta 2 a fost rezolvata")
+
+# 3. Trasarea cercului corelatiilor pentru primii doi factori comuni.
+# extragem corelatiile pentru primii doi factori comuni
+x = corelatii_factoriale[:, 0] # corelatiile cu factorul1
+y = corelatii_factoriale[:, 1] # corelatiile cu factorul2
+
+#cream graficul
+fig, ax = plt.subplots(figsize=(6,6))
+
+#desenam cercul cu raza 1
+circle = plt.Circle((0,0),1,color='b', fill=False, linestyle='dashed')
+ax.add_patch(circle)
+
+#adaugam punctele (anii) in functie de corelatiile lor cu primii doi factori
+plt.scatter(x,y)
+
+#adaugam etichete
+for i, label in enumerate(ani):
+    plt.text(x[i], y[i], label, fontsize=9, ha='right', va='bottom')
+
+#setari pentru axele graficului
+plt.axhline(0,color='black', linewidth=0.5) #linie orizontala la 0
+plt.axvline(0, color='black', linewidth=0.5) # linie verticala la 0
+plt.xlim(-1,1)
+plt.ylim(-1,1)
+plt.xlabel("Factor 1")
+plt.ylabel("Factor 2")
+plt.title("Cercul Corelatiilor")
+plt.grid()
+plt.show()
+
+print("B - cerinta 3 a fost rezolvata")
+
+# C. In fisierul a.csv se afla matricea vectorilor proprii asezati pe coloane, obtinuta in urma aplicarii
+# undei analize in componente principale standardizate pe un numar de 5 variabile observate, X1,....,X5.
+# Valorile proprii sunt: (3.019, 1.2203, 0.6536, 0.102, 0.005). Sa se afiseze la consola variabilele observate
+# pentru care primele doua componente principale explica in comun mai mult de 90% din varianta(comunalitatea). Se
+# va afisa indexul variabilei(numar de la 1 la 5) sau eticheta variabilei (Xk, unde k poate fi de la 1 la 5)
+a = pd.read_csv("dataIN/a.csv")
+valorile_proprii = np.array([3.019, 1.2203, 0.6536, 0.102, 0.005])
+varianta_totala = valorile_proprii.sum()
+varianta_explicata = valorile_proprii[:2].sum()
+procent_varianta = (varianta_totala / varianta_explicata) * 100
+print(f"Procentul de varianta explicat de primele doua componente: {procent_varianta}%")
+
+comunalitate = (a.iloc[:,0]**2 + a.iloc[:,1]**2)
+variabile_selectate = [f'X{i+1}' for i in range(0, len(comunalitate)) if comunalitate[i] > 0.90]
+print("Variabilele care au o comunalitate mai mare de 90% sunt: ")
+print(variabile_selectate)
+
+import numpy as np
+import pandas as pd
+from sklearn.cross_decomposition import CCA
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import normalize
+from scipy.stats import chi2
+
+def test_bartlett(r2,n,p,q,m):
+    x = 1-r2
+    df=[(p-k+1)*(q-k+1) for k in range(1, m+1)]
+    l = np.flip(np.cumprod(np.flip(x)))
+    chi2_ = (-n+1+(p+q+1)/2)*np.log(1)
+    return 1-chi2.cdf(chi2_, df)
+
+#citire csv-uri
+electricitate = pd.read_csv("dataIN/ElectricityProduction.csv", index_col= 0)
+print(electricitate)
+
+emisii = pd.read_csv("dataIN/Emissions.csv", index_col=0)
+print(emisii)
+
+populatie_europa = pd.read_csv("dataIN/PopulatieEuropa.csv", index_col=0)
+print(populatie_europa)
+
+# A. Sa se implementeze urmatoarele cerinte:
+# 1. Salvarea in fisierul Cerinta1.csv a emisiilor totale de particule, la nivel de tara, exprimate in tone
+# Se va salva codul de tara, numele tarii si emisiile totale
+
+coloane_tone = ["AirEmiss", "Sulphur", "Nitrogen", "Ammonia", "NonMeth", "Partic"]
+coloane_mii_tone = ["GreenGE", "GreenGIE"]
+
+emisii[coloane_mii_tone] = emisii[coloane_mii_tone]*1000
+print(emisii)
+emisii["Emisii totale"] = emisii[coloane_tone+coloane_mii_tone].sum(axis=1)
+
+cerinta1 = emisii.reset_index()[["CountryCode","Country", "Emisii totale"]]
+cerinta1.to_csv("dataOUT/Cerinta1.csv", index=False)
+print("A - cerinta 1 a fost rezolvata")
+
+# 2. Salvarea in fisieruul Cerinta2.csv a emisiilor de particule la 100000 locuitori, la nivel de regiune,
+# pe fiecare tip de particule (tone/100000 loc). Pentru fiecare regiune se salveaza codul regiunii
+# si emisiile de particule la 100000 de locuitori
+
+merged = pd.merge(emisii, populatie_europa, on=["Country"])
+print(merged)
+
+rezultate = []
+coloane_actualizate = emisii.iloc[:,2:].columns
+print(coloane_actualizate)
+for regiune, grup in merged.groupby("Regiune"):
+    rez = {"Regiune": regiune}
+    for index in coloane_actualizate:
+        suma = grup[index].sum()
+        nr_loc = grup["Populatie"].sum() / 100000
+        rez[index] = suma / nr_loc
+    rezultate.append(rez)
+cerinta2 = pd.DataFrame(rezultate)
+cerinta2.to_csv("dataOUT/Cerinta2.csv", index=False)
+print("A - cerinta 2 a fost rezolvata")
+
+# B. Sa se studieze legatura dintre structura productiei de energie electrica din fisierul ElectricityProduction.csv
+# si emisiile de particule din fisierul Emissions.csv, utilizand analiza canonica. Vor fi folosite variabilele
+# de la coal la other pentru primul set si variabilele de la AirEmiss la GreenGIE pentru setul 2
+set1 = electricitate.columns[1:]
+set2 = emisii.columns[1:9]
+print(set1)
+print(set2)
+
+p = len(set1)
+q = len(set2)
+m=min(p,q,7)
+print(m)
+
+tabel = electricitate[set1].merge(emisii[set2], left_index=True, right_index=True)
+x = tabel[set1].values
+y = tabel[set2].values
+
+#ne cream model
+model_cca = CCA(n_components=m)
+model_cca.fit(x,y)
+# 1. Calculul scorurilor canonica pentru cele doua seturi si salvarea lor in fisierele z.csv si u.csv
+z,u = model_cca.transform(x,y)
+#normalizarea variabilelor canonice
+z = normalize(z, axis=0)
+u = normalize(u, axis=0)
+
+etichete_z = ["z" + str(i+1) for i in range(m)]
+etichete_u = ["u" + str(i+1) for i in range(m)]
+dfz = pd.DataFrame(z, tabel.index, etichete_z)
+dfu = pd.DataFrame(u, tabel.index, etichete_u)
+dfz.to_csv("dataOUT/z.csv", index=False)
+dfu.to_csv("dataOUT/u.csv", index=False)
+print("B - cerinta 1 a fost rezolvata")
+
+# 2. Calculul corelatiilor canonice si salvarea lor in fisierul r.csv
+r = np.diag(np.corrcoef(z, u, rowvar=False)[:m, m:])
+corelatii_canonice = []
+cerinta2B = pd.DataFrame({
+    "Pereche canonica": [f"Pereche{i+1}" for i in range(0,m)],
+    "Corelatie canonica": r
+})
+print(r)
+cerinta2B.to_csv("dataOUT/r.csv", index=False)
+print("B - cerinta 2 a fost rezolvata")
+
+# 3. Aplicarea testului Bartlett pentru determinarea semnificatiei statistice a perechilor canonice.
+# Se vor afisa la consola rezultatele testului, valorile pvalues si numarul de radacini cu un
+# prag de semnificatie mai mic de 0.01
+
+r2 = r*r
+n = len(tabel)
+p_values = test_bartlett(r2,n,p,q,m)
+etichete_radacini = ["root" + str(i+1) for i in range(m)]
+tabel_semnificatie = pd.DataFrame(
+    data={
+        "R":np.round(r,5),
+        "R2": np.round(r2,5),
+        "P_Values": np.round(p_values, 5)
+    }, index = etichete_radacini
+)
+tabel_semnificatie.index.name = "Radacina"
+print(tabel_semnificatie)
+
+nr_radacini = np.sum(p_values > 0.01)
+nr_radacini = nr_radacini + 1 if nr_radacini == 1 else nr_radacini
+print("Numarul de radacini semnificative este: ", nr_radacini)
+print("B - cerinta 3 a fost rezolvata")
+
+# C. In fisierul c.csv sunt salvata valorile luate de instante pentru componentele principale intr-un
+# modeul de analiza in componente principale standardizata pe sase variabile observate.
+# Sa se afiseze la consola numarul de componente principale semnificative  conform criteriului Cattell
+
+c = pd.read_csv("dataIN/c.csv", index_col=0)
+scaler = StandardScaler()
+date_scalare = scaler.fit_transform(c)
+pca = PCA()
+pca.fit(date_scalare)
+
+valori_eigen = pca.explained_variance_
+
+#Criteriul Cattell: Plotul Screen
+plt.plot(range(1, len(valori_eigen)+1), valori_eigen, 'o-')
+plt.xlabel('Numar Componente Principale')
+plt.ylabel('Valori Proprii')
+plt.title('Plot Screen')
+plt.show()
+
+# Calculăm diferențele între valorile proprii succesive
+diferente = np.diff(valori_eigen)
+
+# Căutăm poziția unde diferența scade semnificativ (punctul de cotitură)
+nr_componente_semnificative = np.argmax(diferente < 0.1) + 1
+
+# Afișăm rezultatul
+print("Numărul de componente principale semnificative conform criteriului Cattell:", nr_componente_semnificative)
+
+import numpy as np
+import pandas as pd
+from scipy.cluster.hierarchy import linkage, dendrogram, fcluster
+import matplotlib.pyplot as plt
+
+# citire date din csv
+coduri = pd.read_csv("dataIN/CoduriTari.csv", index_col=0)
+print(coduri)
+
+educatie = pd.read_csv("dataIN/GlobalEducation.csv", index_col=0)
+print(educatie)
+
+# A. Sa se implementeze urmatoarele cerinte
+# 1. Sa se determine si sa se salveze in fisierul Cerinta1.csv, tarile in care rata de alfanetizare
+# pentru varstele 15-24 la femei este mai mare decat la barbati. Se va salva codul de tara (CountryId),
+# denumirea tarii si ratele de alfabetizare pentru varstele 15-24 femei si barbati
+
+rezultate =[]
+for index, row in educatie.iterrows():
+    if row["Youth_15_24_Literacy_Rate_Female"] > row["Youth_15_24_Literacy_Rate_Male"]:
+        rezultate.append({
+            "CountryId": index,
+            "Country": row["Country"],
+            "Youth_15_24_Literacy_Rate_Male": row["Youth_15_24_Literacy_Rate_Male"],
+            "Youth_15_24_Literacy_Rate_Female": row["Youth_15_24_Literacy_Rate_Female"]
+        })
+cerinta1 = pd.DataFrame(rezultate)
+cerinta1.to_csv("dataOUT/Cerinta1.csv", index=False)
+print("cerinta 1 a fost rezolvata")
+
+# 2. Sa se calculeze si sa se salveze in fisierul Cerinta2.csv, rata medie de absolvire la nivel de continente.
+# se calculeaza valorile medii ale indicatorilor "Completion" la nivel de continent (mediile tarilor din continent),
+# dupa care se calculeaza media acestor valori pentru fiecare continent. Se va salva numele continentului si valoarea medie
+
+educatie["Completion"] = (educatie["Completion_Primary"] + educatie["Completion_Secondary"])/2
+merged = pd.merge(educatie, coduri, on=["CountryId", "Country"])
+print(merged)
+
+continente = merged[["Continent", "Completion"]]
+cerinta2 = continente.groupby("Continent").mean()
+cerinta2 = cerinta2.reset_index()
+cerinta2.to_csv("dataOUT/Cerinta2.csv", index=False)
+print("cerinta 2 a fost rezolvata")
+
+# B. Sa se efectueze analiza pe clusteri print metoda Ward, pentru indicatorii prinvind scolarizarea (toti
+# indicatorii mai putin Country) si sa se furnizeze urmatoarele date:
+# 1. Matricea ierarhie cu informatii privind jonctiunile facute. Pentru fiecare jonctiune se va specifica
+# clusterii intrati in jonctiune, distanta dintre cei doi clusteri si numarul de instante in clusterul nou
+# format. Matricea va fi afisata la consola.
+cerintaB2 = educatie.reset_index().drop(columns=["CountryId", "Country"])
+print(cerintaB2)
+z = linkage(cerintaB2, method="ward")
+print("Matricea ierarhiei")
+print(pd.DataFrame(z, columns=["Cluster 1", "Cluster 2", "Distanță", "Număr elemente"]))
+print("B - cerinta 1 a fost rezolvata")
+
+# 2. Graficul dendrograma pentru partitia optimala
+plt.figure(figsize=(10,7))
+dendrogram(z, labels=educatie["Country"].values, leaf_rotation=90)
+plt.title("Dendrograma metoda ward")
+plt.xlabel("Tari")
+plt.ylabel("Distanta")
+plt.show()
+
+# 3. Componenta partitiei optimale. Pentru fiecare instanta se determina clusterul de care apartine
+# Partitia se va salva in fisierul popt.csv
+clusteri_optimi = fcluster(z, t=10, criterion="distance")
+educatie["Cluster"] = clusteri_optimi
+educatie[["Country", "Cluster"]].to_csv("dataOUT/popt.csv", index=False)
+
+import numpy as np
+import pandas as pd
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+import matplotlib.pyplot as plt
+
+#citire fisiere csv
+coduri = pd.read_csv("dataIN/CoduriTari.csv", index_col=0)
+print(coduri)
+
+indicatori = pd.read_csv("dataIN/GlobalIndicatorsPerCapita_2021.csv", index_col=0)
+print(indicatori)
+
+# A. Sa se implementeze urmatoarele cerinte:
+# 1. Sa se salveze valoarea adaugata pentru fiecare tara si sa se salveze in fisierul Cerinta1.csv
+# Se va salva codul de tara, numele tarii si valoarea adaugata. Valoarea adaugata se calculeaza ca suma
+# a indicatorilor privind valoarea adaugata pe ramuri (linia 9 din tabelul de mai sus)
+
+coloane_valoare = ["AgrHuntForFish", "Construction", "Manufacturing", "MineralsMining", "TradeT", "TransportComm", "Other"]
+print(coloane_valoare)
+
+indicatori["Valoare Adaugata"] = indicatori[coloane_valoare].sum(axis=1)
+print(indicatori)
+
+cerinta1 = indicatori.reset_index()[["CountryID", "Country", "Valoare Adaugata"]]
+cerinta1.to_csv("dataOUT/Cerinta1.csv", index=False)
+print("cerinta 1 a fost rezolvata")
+
+# 2. Salvarea in fisierul Cerinta2.csv a coeficientilor de variatie pentru indicatorii de mai sus
+# (de la GNI pana la sfarsit), la nivel de continent
+
+merged = pd.merge(indicatori, coduri, on=["CountryID", "Country"])
+print(merged)
+
+continente_grupate = merged.groupby("Continent").sum()
+continente_grupate = continente_grupate.drop("Valoare Adaugata", axis=1)
+print(continente_grupate)
+
+cerinta2 = pd.DataFrame(continente_grupate)
+cerinta2.to_csv("dataOUT/Cerinta2.csv", index=False)
+print("cerinta 2 a fost rezolvata")
+
+# B. Sa se efectueze analiza in componente principale standardizata si sa se furnizeze urmatoarele rezultate:
+# 1. Varaintele componentelor principale. Variantele vor fi afisate la consola
+date_numerice = indicatori.select_dtypes(include=["number"])
+
+scaler = StandardScaler()
+date_standard = scaler.fit_transform(date_numerice)
+pca = PCA()
+componente_principale = pca.fit_transform(date_standard)
+print("Variantele componentelor principale: ")
+for i,var in enumerate(pca.explained_variance_ratio_):
+    print(f"Componenta{i+1}: {var*100:.2f}%")
+
+# 2. Scorurile asociate instantelor. Scorurile vor fi salvate in fisierul scoruri.csv
+scoruri = pd.DataFrame(componente_principale, columns=[f"PC{i+1}" for i in range(0, componente_principale.shape[1])])
+scoruri.to_csv("dataOUT/scoruri.csv", index=False)
+
+# 3. Graficul scorurilor in primele doua axe principale
+plt.figure(figsize=(10,6))
+plt.scatter(componente_principale[:, 0], componente_principale[:, 1], c="blue", edgecolors="k")
+plt.title("Scoruri principale pe primele 2 axe")
+plt.xlabel("Componenta principala 1")
+plt.ylabel("Componenta principala 2")
+plt.grid()
+plt.show()
+
+# C. Intr-un model de analiza factoriala cu 5 variabile observate standardizate si 2 factori comuni s-au obtinut
+# coeficientii factoriali L (factor loadings) din fisierul g20.csv. Sa se afiseze la consola care dintre factorii
+# specifici are cea mai mare varianta. Se va afisa un numar de la 1 la 5.
+g20 = pd.read_csv("dataIN/g20.csv")
+max=-1
+variabila_rezultat=0
+for index, row in g20.iterrows():
+    varianta = 1-(row["Factor1"]**2 + row["Factor2"]**2)
+    if(varianta>max):
+        max=varianta
+        variabila_rezultat = index+1
+print(f"Variabila cu varianta maxima este: {variabila_rezultat}")
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+
+# citire csv-uri
+industrie = pd.read_csv("dataIN/Industrie.csv", index_col=0)
+print(industrie)
+
+populatie = pd.read_csv("dataIN/PopulatieLocalitati.csv", index_col=0)
+print(populatie)
+
+# A
+# 1. Sa se salveze in fisierul Cerinta1.csv cifra de afaceri pe cap de locuitor pentru fiecare activitate
+# la nivel de localitate. Pentru fiecare localitate se va salva codul Siruta, numele localitatii si cifra de afaceri
+# pe locuitor pentru fiecare activitate
+
+merged = pd.merge(populatie, industrie, on=["Siruta", "Localitate"])
+print(merged)
+
+coloane_industrie = ["Alimentara", "Textila", "Lemnului", "ChimicaFarmaceutica", "Metalurgica",
+                     "ConstructiiMasini", "CalculatoareElectronica", "Mobila", "Energetica"]
+merged[coloane_industrie]=merged[coloane_industrie].div(merged["Populatie"], axis=0)
+print(merged)
+
+merged.drop(["Judet","Populatie" ], axis=1, inplace=True)
+cerinta1 = pd.DataFrame(merged)
+cerinta1 = cerinta1.reset_index()
+cerinta1.to_csv("dataOUT/Cerinta1.csv", index=False)
+print("cerinta 1 a fost rezolvata")
+
+# 2. Sa se calculeze si sa se salveze in fisierul Cerinta2.csv activitatea industriala dominanta
+# (cu cifra de afaceri cea mai mare) cu cifra de afaceri corespunzatoare, la nivel de judet. Pentru
+# fiecare judet se va afisa indicativul de judet, activitatea dominanta si cifra de afaceri corespunzatoare
+
+merged1 = pd.merge(populatie, industrie, on=["Siruta", "Localitate"])
+
+judete_grupate = merged1.groupby("Judet")[coloane_industrie].sum()
+print(judete_grupate)
+
+activitate_dominanta = judete_grupate.idxmax(axis=1) # returneaza numele activitatii dominante
+valoare_maxima = judete_grupate.max(axis=1) # returneaza valoarea maxima corespunzatoare activitatii dominante
+
+cerinta2=pd.DataFrame({
+    "Judet": judete_grupate.index,
+    "Activitate": activitate_dominanta.values,
+    "Cifra Afaceri": valoare_maxima.values
+})
+
+cerinta2.to_csv("dataOUT/Cerinta2.csv", index=False)
+print("cerinta 2 a fost rezolvata")
+
+# B. Sa se efectueze clasificarea cladirilor din centru vechi al Bucurestilor dupa diversi indicatori de vulnerabilitate si de utilizare...........
+# Cerinte
+# 1. Sa se aplice analiza liniara discriminanta si sa se calculeze scorurile discriminante
+# Acestea vor fi salvate in fisierul z.csv
+proiectB = pd.read_csv("dataIN/ProiectB.csv")
+x = proiectB.drop(columns=["VULNERAB"]) # predictorii
+y = proiectB["VULNERAB"] #variabila tinta
+
+lda = LinearDiscriminantAnalysis()
+x_lda = lda.fit_transform(x,y)
+cerinta1B = pd.DataFrame(x_lda, columns=[f"LD{i+1}" for i in range(0, x_lda.shape[1])])
+cerinta1B.to_csv("dataOUT/z.csv", index=False)
+
+# 2. Sa se traseze graficuls scorurilor discriminante in primele doua axe discriminante
+
+# 3. Sa se efectueze predictiile atat in setul de invatare-testare cat si in setul de aplicare.
+# Predictiile vor fi salvate in fisierele predict_test.csv si predict_apply.csv
+predictii_test = lda.predict(x)
+df1 = pd.DataFrame({"VULNERAB_Predictie": predictii_test})
+df1.to_csv("dataOUT/predict_test.csv", index=False)
+
+proiectApply = pd.read_csv("dataIN/ProiectB_apply.csv")
+predictii_apply = lda.predict(proiectApply)
+df2 = pd.DataFrame({"VULNERAB_Predictie": predictii_apply})
+df2.to_csv("dataOUT/predict_apply.csv", index=False)
+
+import numpy as np
+import pandas as pd
+from scipy.cluster.hierarchy import dendrogram, linkage, fcluster
+import matplotlib.pyplot as plt
+
+# citire csv-uri
+indicatori = pd.read_csv("dataIN/Indicatori.csv", index_col=False)
+print(indicatori)
+
+populatie = pd.read_csv("dataIN/PopulatieLocalitati.csv", index_col=False)
+print(populatie)
+populatie = populatie.rename(columns={"Siruta": "SIRUTA"})
+
+# A. Cerinte
+# 1. Sa se determine localitatile cu cifra de afaceri mai mare decat valoarea medie a cifrei de afaceri pe tara, si
+# sa se salvezee in fisierul Cerinta1.csv. Se vor salva codul Siruta si valorile indicatorilro, in ordinea
+# descrescatoare a cifrei de afaceri
+
+cifra_afaceri_pe_tara = np.mean(indicatori["CFA"])
+print(cifra_afaceri_pe_tara)
+
+rezultat = []
+for index, row in indicatori.iterrows():
+    if row["CFA"] > cifra_afaceri_pe_tara:
+        rezultat.append(row)
+cerinta1 = pd.DataFrame(rezultat)
+cerinta1 = cerinta1.sort_values(by="CFA", ascending=False)
+cerinta1.to_csv("dataOUT/Cerinta1.csv", index=False)
+
+# 2. Sa se determine valorile indicatorilor raportate la populatie (la 1000 locuitori), la nivel de judet si
+# sa se salveze in fisierul Cerinta2.csv. Valoarea pentru un indicator la 1000 locuitori se calculeaza astfel:
+# v_1000 = v*1000/p, unde v_1000 este valoarea indicatorului la 1000 locuitori, v este valoarea indicatorului,
+# iar p este populatia
+rezultate = []
+merged = pd.merge(populatie, indicatori, on="SIRUTA")
+coloane = indicatori.iloc[:, 1:].columns
+for judet, grup in merged.groupby("Judet"):
+    rez = {"Judet": judet}
+    for index in coloane:
+        v = grup[index].sum()
+        p = grup["Populatie"].sum()
+
+        if v!=0:
+            nr = v/p * 1000
+        else:
+            nr =0
+        rez[index] = nr
+    rezultate.append(rez)
+cerinta2 = pd.DataFrame(rezultate)
+cerinta2 = cerinta2.round(3)
+cerinta2.to_csv("dataOUT/Cerinta2.csv", index=False)
+
+# B. In fisierul LocationQ .csv se gasesc indicatori de prezenta a activitatii economice la nivel de judete intre
+# anii 2018 si 2021. Sa se efectueze analiza de clusteri prin metoda Ward pe acest set de date (variabile sunt anii)
+# si sa se furnizeze urmatoarele rezultate:
+# 1. Matricea ierarhie cu informatii priving joctiunile facute. Pentru fiecare jonctiune se va specifica clusterii
+# intrati in jonctiune, distanta dintre cei doi clusteri si numarul de instante in clusterul nou format. Matricea va
+# fi afisata la consola
+date = pd.read_csv("dataIN/LocationQ.csv")
+print(date)
+x = date.iloc[:, 1:]
+judete = date["Judet"]
+print(x)
+print(judete)
+anii = x.columns
+print(anii)
+z = linkage(x, method="ward")
+z_df = pd.DataFrame(z, columns=["Cluster1", "Cluster2", "Distanta", "Numar instante"])
+print(z_df)
+
+# 2. Graficul dendrograma pentru partitia optimala
+# calcul partitie optimala
+distanta = z[:, 2]
+diferente = np.diff(distanta,2)
+pct_elb = np.argmax(diferente)+1
+# dendrograma
+plt.figure(figsize=(12,6))
+dendrogram(z, color_threshold=distanta[pct_elb-1])
+plt.title("Dendrograma Partitie Optimala")
+plt.xlabel("Instante")
+plt.ylabel("Distante")
+plt.show()
+
+# 3. Componenta partitiei optimale. Pentru fiecare instanta se determina clusterul de care apartine. Partitia se va
+# salva in fisierul popt.csv
+clustere = fcluster(z, distanta[pct_elb-1], criterion="distance")
+partitie_optima = pd.DataFrame({"Judet": judete, "Cluster": clustere})
+partitie_optima.to_csv("dataOUT/popt.csv", index=False)
+print(partitie_optima)
+
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+
+# citire csv-uri
+
+coduri = pd.read_csv("dataIN/CoduriTari.csv", index_col=False)
+print(coduri)
+
+netflix = pd.read_csv("dataIN/Netflix.csv", index_col=False)
+
+# A. Cerinte
+# 1. Sa se standardizeze setul de date (se calculeaza valorile standardizate ale indicatorilor de la Librarie la IndiceEducatie)
+# si sa se salveze in fisierul Cerinta1.csv in ordinea descrescatoare dupa valorile variabilei Internet
+coloane = netflix.iloc[:,2:].columns
+date = netflix[coloane]
+scaler = StandardScaler()
+date_standard = scaler.fit_transform(date)
+
+df_date_standard = pd.DataFrame(date_standard, columns=coloane)
+df_date_standard = pd.concat([netflix[["Tara", "Cod"]], df_date_standard], axis=1)
+df_date_standard = df_date_standard.sort_values(by="Internet", ascending=False)
+df_date_standard.to_csv("dataOUT/Cerinta1.csv", index=False)
+
+# 2. Sa se determine coeficientii de variatie pentru fiecare indicator la nivel de continent (Coeficientul de variatie
+# este raportul dintre abaterea standard si medie) si sa se salveze in fisierul Cerinta2.csv. Salvarea se va face in
+# ordine descrescatoare dupa coeficientii de variatie ai variabilei Librarie
+
+merged = pd.merge(netflix, coduri, on=["Tara", "Cod"])
+rezultate=[]
+for continent, grup in merged.groupby("Continent"):
+    rez={"Continent": continent}
+    for index in coloane:
+        medie = grup[index].mean()
+        abatere = grup[index].std()
+        if medie!=0 :
+            coef_var = abatere/medie
+        else:
+            coef_var = 0
+        rez[index] = coef_var
+    rezultate.append(rez)
+cerinta2 = pd.DataFrame(rezultate)
+cerinta2 = cerinta2.sort_values(by="Librarie", ascending=False)
+cerinta2.to_csv("dataOUT/Cerinta2.csv", index=False)
+
+# B. Sa se efectueze PCA standardizata pe setul de date de mai sus (variabilele observate sunt de la Librarie la
+# IndiceEducatie) si sa se furnizeze urmatoarele rezultate:
+# 1. Variantele componentelor principale. Variantele vor fi afisate la consola
+
+pca=PCA()
+date_pca = pca.fit(date_standard)
+componente_principale = pca.components_
+
+variante = pca.explained_variance_
+print("Variante: ", variante)
+
+variante_explicate = pca.explained_variance_ratio_
+print("Variante explicate: ", variante_explicate)
+
+# 2. Scorurile asociate instantelor. Scorurile vor fi salvate in fisierul scoruri.csv
+scoruri = pca.transform(date_standard)
+df_scoruri = pd.DataFrame(scoruri, columns=[f"PC{i+1}" for i in range(0, scoruri.shape[1])])
+df_scoruri.to_csv("dataOUT/scoruri.csv", index=False)
+
+# 3. Graficul scorurilor in primele doua axe principale
+plt.figure(figsize=(10,8))
+plt.scatter(scoruri[:,0], scoruri[:,1], c="blue", alpha=0.8)
+plt.title("Graficul scorurilor in primele doua axe principale")
+plt.xlabel("Axa 1 principala")
+plt.ylabel("Axa 2 principala")
+plt.grid()
+plt.show()
+
+import numpy as np
+import pandas as pd
+from factor_analyzer import FactorAnalyzer, calculate_kmo
+import matplotlib.pyplot as plt
+
+# citire csv-uri
+caen = pd.read_csv("dataIN/CAEN2_2021_NSAL.csv", index_col=False)
+print(caen)
+
+populatie = pd.read_csv("dataIN/PopulatieLocalitati.csv", index_col=False)
+print(populatie)
+
+populatie = populatie.rename(columns={"Siruta":"SIRUTA"})
+print(populatie)
+
+# A. Cerinte
+# 1. Sa se determine pentru fiecare localitate procentele de angajati pe fiecare ramura si sa se salveze rezultatele
+# in fisierul Cerinta1.csv
+
+coloane = caen.iloc[:,1:].columns
+print("Coloane", coloane)
+
+merged = pd.merge(populatie, caen, on="SIRUTA")
+ramuri_angajati_df = caen.iloc[:,1:]
+print(ramuri_angajati_df)
+
+merged["Total angajati"] = ramuri_angajati_df.sum(axis=1)
+procente_angajati = ramuri_angajati_df.div(merged["Total angajati"], axis=0)*100
+print(procente_angajati)
+
+cerinta1 = pd.concat([merged[["SIRUTA"]], procente_angajati], axis=1)
+cerinta1.to_csv("dataOUT/Cerinta1.csv", index=False)
+
+# 2. Sa se determine numarul de angajati la 100000 locuitori la nivel de judet si pentru fiecare ramura. Numarul
+# de angajati la 100000 locuitori se calculeaza astfel: v*100000/p, unde v este numarul de angajati, iar p este
+# populatia. Rezultatele vor fi salvate in fisierul Cerinta2.csv
+rezultate = []
+for judet, grup in merged.groupby("Judet"):
+    rez = {"Judet":judet}
+    for index in coloane:
+        nr_ang = grup[index].sum()
+        pop_judet = grup["Populatie"].sum()
+
+        if nr_ang!=0:
+            nr = nr_ang/pop_judet * 100000
+        else:
+            nr = 0
+        rez[index] = nr
+    rezultate.append(rez)
+cerinta2 = pd.DataFrame(rezultate)
+cerinta2 = cerinta2.round(2)
+cerinta2.to_csv("dataOUT/Cerinta2.csv", index=False)
+
+# B. Sa se efectueze EFA, fara rotatie de factori, pe setul de date de mai sus (CAEN2_2021_NSAL) si sa se
+# furnizeze urmatoarele rezultate:
+
+date_b = caen[coloane]
+date_b = date_b.dropna()
+
+# 1. Aplicarea testului KMO. Se vor calcula si se vor afisa la consosla indecsii KMO
+kmo_all, kmo_model = calculate_kmo(date_b)
+print("Scorul total KMO: ", kmo_model)
+print("Indecsi KMO pentru fiecare variabila:\n", kmo_all)
+
+#2. Scoruri factoriale. Vor fi afisate in fisierul f.csv
+fa_calcul = FactorAnalyzer(n_factors=5, rotation=None)
+fa_calcul.fit(date_b)
+scoruri = fa_calcul.transform(date_b)
+
+df_scoruri = pd.DataFrame(scoruri, columns=[f"Scoruri{i+1}" for i in range(0, scoruri.shape[1])])
+df_scoruri.to_csv("dataOUT/f.csv", index=False)
+
+# 3. Graficul scorurilor factoriale pentru primii doi factori
+plt.figure(figsize=(10,8))
+plt.scatter(scoruri[:,0], scoruri[:,1], c="blue", alpha=0.8)
+plt.title("Graficul scorurilor factoriale pentru primii doi factori")
+plt.xlabel("Factor 1")
+plt.ylabel("Factor 2")
+plt.show()
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+
+# citire csv-uri
+buget = pd.read_csv("dataIN/Buget.csv", index_col=0)
+print(buget)
+
+populatie = pd.read_csv("dataIN/PopulatieLocalitati.csv", index_col=0)
+print(populatie)
+
+# A
+# 1. Sa se salveze in fisierul Cerinta1.csv total venituri si total cheltuieli la nivel de localitate.
+# Pentru fiecare localitate se va salva codul Siruta, numele localitatii si cele 2 totaluri
+
+indici_venituri = ["V1", "V2", "V3", "V4", "V5"]
+indici_cheltuieli = ["C1","C2","C3","C4","C5","C6","C7","C8"]
+
+buget["Venituri"] = buget[indici_venituri].sum(axis=1)
+buget["Cheltuieli"] = buget[indici_cheltuieli].sum(axis=1)
+print(buget)
+
+cerinta1 = buget.reset_index()[["Siruta", "Localitate", "Venituri", "Cheltuieli"]]
+cerinta1.to_csv("dataOUT/Cerinta1.csv", index=False)
+print("cerinta 1 a fost rezolvata")
+
+# 2. Sa se calculeze si sa se salveze in fisierul Cerinta2.csv veniturile pe locuitor, pe categorii de venituri,
+# la nivel de udet, sortate descrescator dupa veniturile din cote defalcate din impozitul pe venit (V1).
+# Pentru fiecare judet sa va afisa indicativul de judet si veniturile pe locuitor pe categorii
+
+merged = pd.merge(populatie, buget, on=["Siruta", "Localitate"])
+print(merged)
+judete_grupate = merged.groupby("Judet")
+print(judete_grupate)
+judete_sume = judete_grupate[indici_venituri].sum()
+print(judete_sume)
+populatie_judet = judete_grupate["Populatie"].sum()
+print(populatie_judet)
+venituri_pe_locuitor = judete_sume.div(populatie_judet, axis=0)
+
+venituri_pe_locuitor["Judet"] = venituri_pe_locuitor.index
+venituri_pe_locuitor = venituri_pe_locuitor.sort_values(by="V1", ascending=False)
+col_sort = ["Judet"] + indici_venituri
+venituri_pe_locuitor = venituri_pe_locuitor[col_sort]
+
+venituri_pe_locuitor.to_csv("dataOUT/Cerinta2.csv", index=False)
+print("cerinta 2 a fost rezolvata")
+
+# B. Sa se efectueze diagnostica starii pacientilor unui spital aflati in blocul post-operator utilizand metode de clasificare......
+# Cerinte:
+# 1. Sa se aplice analiza liniara discriminanta si sa se efectueze predictia in setul de testare
+# Predictiile vor fi salvata in fisierul predict.csv
+
+pacienti = pd.read_csv("dataIN/Patients.csv")
+x = pacienti.drop(columns=["DEPARTMENT"])
+y = pacienti["DEPARTMENT"]
+
+lda = LinearDiscriminantAnalysis()
+x_lda = lda.fit_transform(x,y)
+predictii_test = lda.predict(x)
+df = pd.DataFrame({"DEPARTMENT": predictii_test})
+df.to_csv("dataOUT/predict.csv", index=False)
+
+import numpy as np
+import pandas as pd
+
+#citire csv-uri
+coduri = pd.read_csv("dataIN/Coduri_localitati.csv", index_col=0)
+print(coduri)
+
+vot = pd.read_csv("dataIN/Vot.csv", index_col=0)
+print(vot)
+
+# A. Sa se implementeze urmatoarele cerinte:
+# 1. Salvarea in fisierul cerinta1.csv a procentelor participarii la vot pe categorii de alegatori.
+# Procentul participarii la vot pentru o categorie se calculeaza ca numar de voturi * 100 / Votanti_LP
+# Se va salva codul Siruta, numele localitatii si procentele participarii la vot
+
+print(vot.columns)
+
+categorii = ["Barbati_25-34", "Barbati_35-44",
+       "Barbati_45-64", "Barbati_65_", "Femei_18-24", "Femei_35-44",
+       "Femei_45-64", "Femei_65_"]
+
+vot_procente = vot.copy()
+vot_procente[categorii] = (vot[categorii]*100).div(vot["Votanti_LP"], axis=0)
+
+cerinta1 = vot_procente.reset_index()[["Siruta", "Localitate"] + categorii]
+
+cerinta1.to_csv("dataOUT/cerinta1.csv", index=False)
+print("cerinta 1 a fost rezolvata")
+
+# 2. Salvarea in fisierul cerinta2.csv a procentelor participarii la vot pe categorii de alegatori la nivel de judet. Se
+# va salva indicativul judetului si procentele pentru ficare categorie. Procentul participarii la vot pentru o categorie
+# se calculeaza la fel ca la punctul 1: numar votanti*100/numar votanti in lista de vot
+
+merged = pd.merge(coduri, vot, on=["Siruta", "Localitate"])
+print(merged)
+judete_grupate = merged.groupby("Judet")
+print(judete_grupate)
+procente_judet = (judete_grupate[categorii].sum() * 100).div(judete_grupate["Votanti_LP"].sum(), axis=0)
+print(procente_judet)
+procente_judet = procente_judet.reset_index()
+cerinta2 = pd.DataFrame(procente_judet)
+cerinta2.to_csv("dataOUT/cerinta2.csv", index=False)
+print("cerinta 2 a fost rezolvata")
+
+import numpy as np
+import pandas as pd
+
+# citire csv-uri
+alcohol = pd.read_csv("dataIN/alcohol.csv", index_col=0)
+print(alcohol)
+
+coduri = pd.read_csv("dataIN/CoduriTariExtins.csv", index_col=0)
+print(coduri)
+
+# A. Sa se implementeze urmatoarele cerinte:
+# 1. Salvarea in fisierul cerinta1.csv a mediei consumului pe cei cinci ani pentru fiecare tara. Se va
+# salva pentru fiecare tara, codul de tara si media
+
+ani = ["2000", "2005", "2010", "2015", "2018"]
+alcohol["Suma"] = alcohol[ani].sum(axis=1)
+print(alcohol)
+
+alcohol["Media"] = alcohol["Suma"].div(5, axis=0)
+print(alcohol)
+
+cerinta1 = alcohol[["Code", "Media"]]
+print(cerinta1)
+cerinta1.to_csv("dataOUT/cerinta1.csv", index=False)
+print("cerinta 1 a fost rezolvata")
+
+# 2. Salvarea in fisierul cerinta2.csv a anului in care s-a inregistrat cea mai mare valoare medie a
+# consumului la nivel de continent. Se va salva numele continentului  si anul in care s-a obtinut cea
+# mai mare valoare medie
+
+alcohol = alcohol.reset_index().rename(columns={"Entity": "Tari"})
+print(alcohol["Tari"])
+
+merged = pd.merge(coduri, alcohol, on="Tari")
+print(merged)
+
+continente_grupate = merged.groupby("Continent")[ani].sum()
+print(continente_grupate)
+
+an_dominant = continente_grupate.idxmax(axis=1)
+print(an_dominant)
+
+cerinta2 = pd.DataFrame({
+    "Continent_Name": continente_grupate.index,
+    "Anul": an_dominant.values
+})
+
+cerinta2.to_csv("dataOUT/cerinta2.csv", index=False)
+print("cerinta 2 a fost rezolvata")
+
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+
+#citire csv-uri
+coduri = pd.read_csv("dataIN/CoduriTariExtins.csv", index_col=0)
+print(coduri)
+
+rata = pd.read_csv("dataIN/Rata.csv", index_col=0)
+print(rata)
+
+# A. Sa se implementeze urmatoarele cerinte:
+# 1. Salvarea in fisierul Cerinta1.csv a tarilor in care rata sporului natural este mai mica decat rata medie a
+# sporului natural global, in ordinea descrescatoare a ratei sporului natural. Se va salva codul de tara, numele
+# tarii si rata sporului natural
+
+media_globala = rata["RS"].mean() # calculam media
+print(media_globala)
+
+rata_sub_medie = rata[rata["RS"] < media_globala]
+print(rata_sub_medie)
+
+# sortam descrescator
+rata_sub_medie = rata_sub_medie.sort_values(by="RS", ascending=False)
+rata_sub_medie = rata_sub_medie.reset_index()
+
+cerinta1=rata_sub_medie[["Three_Letter_Country_Code", "Country_Name", "RS"]]
+cerinta1.to_csv("dataOUT/Cerinta1.csv", index=False)
+print("cerinta 1 a fost rezolvata")
+
+# 2. Determinarea pentru fiecare continent a tarilor cu cele mai mari valori pentru fiecare sintre indicatorii
+# miscarii naturale a populatiei. Rezultatul se va salva in fisierul Cerinta2.csv. Pentru fiecare continent se va salva
+# numele continentului si codurile de trei litere ale tarilor cu valori maxime.
+
+coduri = coduri.reset_index()
+coduri = coduri.rename(columns={"Country_Letter_code": "Three_Letter_Country_Code"})
+coduri = coduri.rename(columns={"Country": "Country_Name"})
+
+merged = pd.merge(coduri, rata, on=["Three_Letter_Country_Code", "Country_Name"])
+print(merged)
+print(merged.columns.tolist())
+
+indicatori = ["FR", "IM", "LE", "LEF", "LKM", "MMR", "RS"]
+
+#grupad dupa continente
+rezultat = []
+for continent, grup in merged.groupby("Continent"):
+    max_values = {col: grup.loc[grup[col].idxmax(), "Three_Letter_Country_Code"] for col in indicatori}
+    max_values["Continent"] = continent
+    rezultat.append(max_values)
+print(rezultat)
+col_order = ["Continent"] + indicatori
+cerinta2 = pd.DataFrame(rezultat)
+cerinta2 = cerinta2[col_order]
+
+cerinta2.to_csv("dataOUT/Cerinta2.csv", index=False)
+print("cerinta 2 a fost rezolvata")
+
+# B. Sa se efectueze analiza in componente principale standardizata pe indicatorii miscarii naturale a populatiei
+# si sa se furnizeze urmatoarele rezultate:
+# 1. Tabelul variantei componentelor principae. Tabelul va si salvat in fisierul Varianta.csv si va avea
+# 4 coloane: varianta componentelor, varianta cumulata, procentuld e varianta explicata si procentul cumulat
+date = rata[indicatori]
+
+scaler = StandardScaler()
+x_standard = scaler.fit_transform(date)
+pca=PCA(n_components=7)
+x_pca=pca.fit(x_standard)
+
+varianta = pca.explained_variance_
+varianta_procentuala = pca.explained_variance_ratio_
+varianta_cumulata = np.cumsum(varianta)
+procent_cumulat = np.cumsum(varianta_procentuala)
+
+cerinta1B = pd.DataFrame({
+    "Varianta": varianta,
+    "Varianta cumulata": varianta_cumulata,
+    "Procentul de varianta explicata": varianta_procentuala*100,
+    "Procentul de varianta explicata cumulata": procent_cumulat*100
+})
+cerinta1B.to_csv("dataOUT/Varianta.csv", index=False)
+
+# 2. Plotul de varianta cu matricea grafica a criteriilor de selectie a componentelor semnificative
+
+# 3. Corelograma corelatiilor dintre variabilele observate si componentele principale
+componente_principale = pca.components_
+corelatii_factoriale = componente_principale.T * np.sqrt(varianta)
+plt.figure(figsize=(10,8))
+sns.heatmap(corelatii_factoriale, annot=True, cmap='coolwarm', center=0, xticklabels=[f"PC{i+1}" for i in range(corelatii_factoriale.shape[1])])
+plt.title("Corelograma corelatiilor factoriale")
+plt.xlabel("Componente principale")
+plt.ylabel("Variabile observate")
+plt.show()
+
+
+# Analiza canonica
+# importuri necesare
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sb
+from sklearn.cross_decomposition import CCA
+from scipy.stats import chi2
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+
+date = pd.read_csv('date_canonice.csv')
+x = date.iloc[:, :3].values
+y = date.iloc[:, 3:].values
+
+cca = CCA(n_components=2)
+cca.fit(x, y)
+
+def test_bartlett(r2,n,p,q,m):
+    x = 1-r2
+    df=[(p-k+1)*(q-k+1) for k in range(1, m+1)]
+    l = np.flip(np.cumprod(np.flip(x)))
+    chi2_ = (-n+1+(p+q+1)/2)*np.log(1)
+    return 1-chi2.cdf(chi2_, df)
+
+# Calcul scoruri canonice(variabile canonice)
+x_scoruri, y_scoruri = cca.transform(x, y)
+
+# Calcul corelatii canonice
+corelatii_canonice = np.corrcoef(x_scoruri.T, y_scoruri.T).diagonal(offset=x_scoruri.shape[1])
+print("Corelatii canonice:\n", corelatii_canonice)
+
+# Determinare relevanta radacine canonice (Test Bartllet)
+r2 = corelatii_canonice*corelatii_canonice
+n = len(date)
+p = x.shape[1]
+q = y.shape[1]
+m = min(p,q,7)
+p_values = test_bartlett(r2,n,p,q,m)
+etichete_radacini = ["root" + str(i+1) for i in range(m)]
+tabel_semnificatie = pd.DataFrame(
+    data={
+        "R":np.round(corelatii_canonice,5),
+        "R2": np.round(r2,5),
+        "P_Values": np.round(p_values, 5)
+    }, index = etichete_radacini
+)
+tabel_semnificatie.index.name = "Radacina"
+print(tabel_semnificatie)
+
+nr_radacini = np.sum(p_values > 0.01)
+nr_radacini = nr_radacini + 1 if nr_radacini == 1 else nr_radacini
+print("Numarul de radacini semnificative este: ", nr_radacini)
+
+# Calcul corelatii variabile observate - variabile canonice
+corelatii_x_xscoruri = np.corrcoef(x.T, x_scoruri.T)[:x.shape[1], x.shape[1]:]
+corelatii_y_yscoruri = np.corrcoef(y.T, y_scoruri.T)[:y.shape[1], y.shape[1]:]
+print("Corelații X - X_c:\n", corelatii_x_xscoruri)
+print("Corelații Y - Y_c:\n", corelatii_y_yscoruri)
+
+
+# Trasare corelograma corelatii variabile observate - variabile canonice
+df_corelatii_x = pd.DataFrame(corelatii_x_xscoruri,
+                              index=[f"X{i+1}" for i in range(x.shape[1])],
+                              columns=[f"X_Scor{i+1}" for i in range(x_scoruri.shape[1])])
+df_corelatii_y = pd.DataFrame(corelatii_y_yscoruri,
+                              index=[f"Y{i+1}" for i in range(y.shape[1])],
+                              columns=[f"Y_Scor{i+1}" for i in range(y_scoruri.shape[1])])
+plt.figure(figsize=(10, 8))
+sb.heatmap(df_corelatii_x, annot=True, cmap="coolwarm", center=0)
+plt.title('Corelograma variabile X - X_Scoruri')
+plt.show()
+
+plt.figure(figsize=(10, 8))
+sb.heatmap(df_corelatii_y, annot=True, cmap="coolwarm", center=0)
+plt.title('Corelograma variabile Y - Y_Scoruri')
+plt.show()
+
+# Trasare plot corelatii variabile observate - variabile canonice (cercul corelatiilor)
+plt.figure(figsize=(8, 8))
+plt.axhline(0, color='grey', lw=1)
+plt.axvline(0, color='grey', lw=1)
+
+circle = plt.Circle((0, 0), 1, color='black', fill=False, linestyle='dashed')
+plt.gca().add_patch(circle)
+
+plt.scatter(df_corelatii_x.iloc[:, 0], df_corelatii_x.iloc[:, 1], label='X variables', color='blue')
+plt.scatter(df_corelatii_y.iloc[:, 0], df_corelatii_y.iloc[:, 1], label='Y variables', color='red')
+for i, label in enumerate(df_corelatii_x.index):
+    plt.text(df_corelatii_x.iloc[i, 0], df_corelatii_x.iloc[i, 1], label, color='blue')
+for i, label in enumerate(df_corelatii_y.index):
+    plt.text(df_corelatii_y.iloc[i, 0], df_corelatii_y.iloc[i, 1], label, color='red')
+plt.xlabel("Componenta canonică 1")
+plt.ylabel("Componenta canonică 2")
+plt.title("Cercul corelațiilor")
+plt.legend()
+plt.grid()
+plt.show()
+
+# Trasare plot instante in spatiile celor doua varianile (Biplot)
+# pas1 - Standardizare
+scaler_x = StandardScaler()
+scaler_y = StandardScaler()
+
+x_std = scaler_x.fit_transform(x)
+y_std = scaler_y.fit_transform(y)
+
+# pas2 - Aplicăm PCA pentru a reduce la 2 dimensiuni
+pca_x = PCA(n_components=2)
+pca_y = PCA(n_components=2)
+
+x_pca = pca_x.fit_transform(x_std)
+y_pca = pca_y.fit_transform(y_std)
+
+# pas3 - Trasare plot instante în spațiile variabilelor originale X și Y
+plt.figure(figsize=(8, 8))
+plt.scatter(x_pca[:, 0], x_pca[:, 1], label='Instanțe în spațiul X', color='blue')
+plt.scatter(y_pca[:, 0], y_pca[:, 1], label='Instanțe în spațiul Y', color='red')
+
+plt.xlabel("Componenta 1")
+plt.ylabel("Componenta 2")
+plt.title("Instanțe în spațiile variabilelor X și Y")
+plt.legend()
+plt.grid()
+plt.show()
+
+# Calcul varianta explicata si redundanta informationala
+varianta_explicata = corelatii_canonice ** 2
+
+var_explicata_x = np.var(x_scoruri, axis=0) / np.sum(np.var(x, axis=0))
+var_explicata_y = np.var(y_scoruri, axis=0) / np.sum(np.var(y, axis=0))
+
+redundanta_x = np.sum(varianta_explicata * var_explicata_x)
+redundanta_y = np.sum(varianta_explicata * var_explicata_y)
+
+print(f"Varianță explicată: {varianta_explicata}")
+print(f"Redundanță informațională X: {redundanta_x:.4f}")
+print(f"Redundanță informațională Y: {redundanta_y:.4f}")
+
+# Analiza de clusteri
+# importuri
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sb
+from scipy.cluster.hierarchy import linkage, dendrogram, fcluster
+from sklearn.metrics import silhouette_score, silhouette_samples
+from sklearn.decomposition import PCA
+
+#citire date
+date = pd.read_csv("date_clusterizare.csv")
+
+# Calcul ierarhie (matricea ierarhie)
+z = linkage(date, method="ward")
+print("Matrice ierarhie:\n", z)
+
+#si o dendrograma asa frumos
+plt.figure(figsize=(10,7))
+dendrogram(z)
+plt.title("Dendrograma - Calcul Ierarhie")
+plt.xlabel("Instante")
+plt.ylabel("Distanta")
+plt.show()
+
+# Calcul partitie optimala (repartizarea instantelor in clusteri) prin metoda Elbow pe baza diferentelor dintre distantele de agregare (NU ELBOW KMEANS)
+distanta = z[:,2]
+diferente = np.diff(distanta,2)
+punct_elb = np.argmax(diferente)+1
+print("Numarul optim de clustere este: ", punct_elb)
+
+#si un grafic ca asa e frumos
+plt.figure(figsize=(8,6))
+plt.plot(range(1, len(diferente)+1), diferente, marker='o')
+plt.title("Diferentele dintre distantele de agregare")
+plt.xlabel("Nr de pasi de agregare")
+plt.ylabel("Diferenta distantei de agregare")
+plt.show()
+
+# Calcul partitie oarecare (cu un numar prestabilit de clusteri - numarul de clusteri se initializeaza prin cod sau se citeste de la tastatura/interfata grafica)
+nr_clusteri = 5
+clusteri_k = fcluster(z, t=nr_clusteri, criterion="maxclust")
+print("Calcul pentru o partitie oarecare: ", clusteri_k)
+
+# Calcul indecsi Silhouette la nivel de partitie si de instante
+silhouette_per_instanta = silhouette_samples(date, clusteri_k)
+silhouette_avg = silhouette_score(date, clusteri_k)
+print(f"Indicele Silhouette pentru intreaga partitie: {silhouette_avg:.3f}")
+print(f"Instante Silhouette pentru instante: {silhouette_per_instanta}")
+
+# Trasare plot dendograma cu evidentierea partiei prin culoare (optimala si partitie-k)
+# partitie optimala
+plt.figure(figsize=(10,7))
+dendrogram(z, color_threshold=distanta[punct_elb-1])
+plt.title("Dendrograma - Calcul Ierarhie cu evidentierea partitie optimala")
+plt.xlabel("Instante")
+plt.ylabel("Distanta")
+plt.show()
+
+# Pentru partitia-k
+plt.figure(figsize=(10,7))
+dendrogram(z, color_threshold=distanta[nr_clusteri-1], above_threshold_color='b')
+plt.title(f"Dendrograma - Calcul Ierarhie cu evidentierea partitie-{nr_clusteri}")
+plt.xlabel("Instante")
+plt.ylabel("Distanta")
+plt.show()
+
+# Trasare plot Silhouette partitie (optimala si partitie-k)
+# Pentru partitia optimala
+plt.figure(figsize=(10,7))
+sb.barplot(x=silhouette_per_instanta, hue=range(len(silhouette_per_instanta)), palette='viridis')
+plt.title("Silhouette pentru fiecare instanță - Partitia Optima")
+plt.xlabel("Indicele Silhouette")
+plt.ylabel("Instanțe")
+plt.show()
+
+# Pentru partitia-k
+silhouette_per_instanta_k = silhouette_samples(date, clusteri_k)
+plt.figure(figsize=(10,7))
+sb.barplot(x=silhouette_per_instanta_k, hue=range(len(silhouette_per_instanta_k)), palette='viridis')
+plt.title(f"Silhouette pentru fiecare instanță - Partitia-{nr_clusteri}")
+plt.xlabel("Indicele Silhouette")
+plt.ylabel("Instanțe")
+plt.show()
+
+# Trasare histograme clusteri pentru fiecare variabila observata (optimala si partitie-k)
+date['Cluster'] = clusteri_k
+# Histograme pentru variabila observata in partiția optimă
+# Calcul partitie optimala
+clusteri_optimal = fcluster(z, t=punct_elb, criterion="maxclust")
+
+# Crearea histogramei pentru fiecare cluster
+fig = plt.figure(figsize=(15, 9))
+fig.suptitle("Histograme pentru variabila Variabila_1 - Partitia Optima")
+
+# Identificarea valorilor unice ale clusterelor
+clusteri = list(set(clusteri_optimal))
+dim = len(clusteri)
+
+# Crearea subgraficelor pentru fiecare cluster
+axs = fig.subplots(1, dim, sharey=True)
+
+# Iterăm prin fiecare cluster
+for i in range(dim):
+    ax = axs[i]
+    ax.set_xlabel(f"Cluster {clusteri[i]}")
+
+    # Selectăm valorile corespunzătoare clusterului curent
+    cluster_mask = (clusteri_optimal == clusteri[i])
+    cluster_values = date['Variabila_1'][cluster_mask]
+    cluster_labels = np.array(date.index[cluster_mask])  # Folosim indecșii ca etichete
+
+    # Crearea histogramei pentru clusterul curent
+    counts, bins, bars = ax.hist(cluster_values, bins=10, rwidth=0.9, range=(min(date['Variabila_1']), max(date['Variabila_1'])), color='blue', alpha=0.7)
+
+    # Adăugarea etichetelor la fiecare bară
+    for bar, value, label in zip(bars, cluster_values, cluster_labels):
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,  # Centrul barei
+            bar.get_height(),  # Înălțimea barei
+            label,  # Eticheta corespunzătoare
+            ha='center', va='bottom', fontsize=8, rotation=45
+        )
+
+# Ajustăm layout-ul pentru a evita suprapunerea
+plt.tight_layout()
+plt.show()
+
+
+# Histograme pentru variabila observata in partiția-k
+# Crearea histogramei pentru fiecare cluster
+fig = plt.figure(figsize=(9, 9))
+fig.suptitle("Histograme pentru variabila Variabila_1")
+
+# Identificarea valorilor unice ale clusterelor
+clusteri = list(set(clusteri_k))
+dim = len(clusteri)
+
+# Crearea subgraficelor pentru fiecare cluster
+axs = fig.subplots(1, dim, sharey=True)
+
+# Iterăm prin fiecare cluster
+for i in range(dim):
+    ax = axs[i]
+    ax.set_xlabel(f"Cluster {clusteri[i]}")
+
+    # Selectăm valorile corespunzătoare clusterului curent
+    cluster_mask = (clusteri_k == clusteri[i])
+    cluster_values = date['Variabila_1'][cluster_mask]
+    cluster_labels = np.array(date.index[cluster_mask])  # Folosim indecșii ca etichete (sau alte etichete relevante)
+
+    # Crearea histogramei pentru clusterul curent
+    counts, bins, bars = ax.hist(cluster_values, bins=10, rwidth=0.9, range=(min(date['Variabila_1']), max(date['Variabila_1'])), color='blue', alpha=0.7)
+
+    # Adăugarea etichetelor la fiecare bară
+    for bar, value, label in zip(bars, cluster_values, cluster_labels):
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,  # Centrul barei
+            bar.get_height(),  # Înălțimea barei
+            label,  # Eticheta corespunzătoare
+            ha='center', va='bottom', fontsize=8, rotation=45
+        )
+
+# Ajustăm layout-ul pentru a evita suprapunerea
+plt.tight_layout()
+plt.show()
+
+
+# Trasare plt partitie in axe principale (optimala si partitie-k)
+# Dimensiune redusa pentru partiția optimă
+pca = PCA(n_components=2)
+date_pca = pca.fit_transform(date)
+plt.figure(figsize=(10,7))
+plt.scatter(date_pca[:, 0], date_pca[:, 1], c=clusteri_k, cmap='viridis')
+plt.title("Partiție în Axe Principale - Partitia Optima")
+plt.xlabel("Componenta 1")
+plt.ylabel("Componenta 2")
+plt.show()
+
+# Dimensiune redusa pentru partiția-k
+plt.figure(figsize=(10,7))
+plt.scatter(date_pca[:, 0], date_pca[:, 1], c=clusteri_k, cmap='viridis')
+plt.title(f"Partiție în Axe Principale - Partitia-{nr_clusteri}")
+plt.xlabel("Componenta 1")
+plt.ylabel("Componenta 2")
+plt.show()
+
+# 3. Componenta partitiei optimale. Pentru fiecare instanta se determina clusterul de care apartine. Partitia se va
+# salva in fisierul popt.csv
+clustere = fcluster(z, distanta[punct_elb-1], criterion="distance")
+partitie_optima = pd.DataFrame({"Judet": judete, "Cluster": clustere})
+partitie_optima.to_csv("dataOUT/popt.csv", index=False)
+print(partitie_optima)
+
+# Analiza in Componente Principale
+#Importuri necesare:
+import pandas as pd
+import numpy as np
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+import seaborn as sb
+
+#citim datele
+date = pd.read_csv("date_pca.csv")
+print(date)
+
+date_numerice = date.drop(columns={"Tara"}) # pentru pca avem nevoie doar de coloanele numerice
+print(date_numerice)
+
+#standardizam datele
+scaler = StandardScaler()
+date_standard = scaler.fit_transform(date_numerice)
+
+#aplicam PCA
+pca = PCA()
+date_pca = pca.fit(date_standard)
+componente_principale = pca.components_
+
+#Varianta componente
+varianta = pca.explained_variance_
+print("1.Varianta componentelor:\n", varianta)
+
+#Plot varianta componente cu evidentierea criteriilor de relevanta
+varianta_explicata = pca.explained_variance_ratio_
+varianta_cumulativa = np.cumsum(varianta_explicata)
+plt.figure(figsize=(8,6))
+plt.bar(range(1, len(varianta)+1), varianta_explicata, alpha=0.7, color="blue", label="Varianta explicata")
+plt.plot(range(1, len(varianta)+1), varianta_cumulativa, marker="o", linestyle="--", color="red", label="Varianta cumulativa")
+plt.xlabel("Numarul componentelor principale")
+plt.ylabel("Varianta explicata")
+plt.title("Plot varianta componente")
+plt.legend()
+plt.grid()
+plt.show()
+
+# Calculul corelatii factoriale (corelatii variabile observate - componente)
+# corelatie_factoriala = componente_principale.T * sqrt(varianta)
+corelatie_factoriala = componente_principale.T * np.sqrt(varianta)
+print("3. Corelatii factoriale:\n", corelatie_factoriala)
+
+# Trasare corelograma corelatii factoriale
+plt.figure(figsize=(10,8))
+sb.heatmap(corelatie_factoriala, annot=True, cmap='coolwarm', center=0, xticklabels=[f"PC{i+1}" for i in range(0, corelatie_factoriala.shape[1])])
+plt.title("Corelograma corelatiilor factoriale")
+plt.xlabel("Componente principale")
+plt.ylabel("Variabile observate")
+plt.show()
+
+# Trasare cercul corelatiilor
+fig,ax = plt.subplots(figsize=(8,8))
+ax.set_xlim(-1,1)
+ax.set_ylim(-1,1)
+circle = patches.Circle((0,0),1,color="gray", fill=False)
+ax.add_patch(circle)
+
+for i, (x,y) in enumerate(corelatie_factoriala[:, :2]):
+    ax.arrow(0,0,x,y,head_width=0.05, head_length=0.05, fc="red", ec="red")
+    ax.text(x,y,date_numerice.columns[i], fontsize=12, color="black")
+
+ax.axhline(0,color="gray", linestyle="--")
+ax.axvline(0, color="gray", linestyle="--")
+
+plt.xlabel("Componenta principala 1")
+plt.ylabel("Componenta principala 2")
+plt.title("Cercul corelatiilor")
+plt.grid()
+plt.show()
+
+# Calcul componente si/sau scoruri
+scoruri_componente = pca.transform(date_standard)
+print("Componente principale:\n", componente_principale)
+print("Scoruri componente:\n", scoruri_componente)
+
+# Trasare plot componente/scoruri
+plt.figure(figsize=(8,6))
+plt.scatter(scoruri_componente[:,0], scoruri_componente[:,1], c="blue", alpha=0.8)
+plt.title("Plot componente/scoruri")
+plt.xlabel("Componenta principala 1")
+plt.ylabel("Componenta principala 2")
+plt.grid()
+plt.show()
+
+# Calcul cosinusuri
+# cos = componente^2 / suma pe fiecare variabila
+componente_patrat = componente_principale**2
+suma_var = np.sum(componente_patrat, axis=0)
+cosinusuri = componente_patrat/suma_var
+print("Cosinusuri:\n", cosinusuri)
+
+# Calcul contributii
+contributii = (pca.explained_variance_ratio_ * 100)
+print("Contributii:\n", contributii)
+
+# Calcul comunalitati
+comunalitati = np.sum(corelatie_factoriala**2, axis=1)
+print("Comunalitati:\n", comunalitati)
+
+# Trasare corelograma comunalitati
+plt.figure(figsize=(10,8))
+sb.heatmap(pd.DataFrame(comunalitati, columns=['Comunalități'], index=date_numerice.columns),
+            annot=True, cmap='viridis', fmt=".2f")
+plt.title("Corelograma comunalitati")
+plt.show()
+
+# Analiza Discriminanta
+# importuri
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sb
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import GaussianNB
+from sklearn.metrics import confusion_matrix, accuracy_score
+
+# citire date
+date = pd.read_csv("discriminant_analysis_data.csv")
+x = date.drop(columns=["Target"])
+y = date["Target"]
+
+x_train, x_test, y_train, y_test = train_test_split(x,y,train_size=0.3, random_state=42)
+
+lda = LinearDiscriminantAnalysis()
+lda.fit(x_train, y_train)
+
+# Calcul scoruri discriminante model liniar
+scoruri = lda.transform(x_test)
+print("Scoruri discriminante\n", scoruri)
+
+# Trasare plot instante in axe discriminante
+plt.figure(figsize=(10,8))
+plt.scatter(scoruri[:, 0], [0]*len(scoruri), c=y_test, cmap="viridis", edgecolors='k', s=50)
+plt.title("Instante in axe discriminante")
+plt.xlabel("Axa discriminanta")
+plt.yticks([])
+plt.colorbar(label="Clasa")
+plt.show()
+
+# Trasare plot distributii in axele discriminante
+lda_df = pd.DataFrame({"Scoruri discriminante": scoruri[:,0], "Clasa":y_test})
+plt.figure(figsize=(10,8))
+sb.histplot(lda_df, x="Scoruri discriminante", hue="Clasa", kde=True, bins=30, palette="viridis", alpha=0.6)
+plt.title("Distributia scorurilor discriminante in axa LDA")
+plt.xlabel("Scoruri Discriminante (Axa 1)")
+plt.ylabel("Frecventa")
+plt.show()
+
+# Predictia in setul de testare model liniar
+y_pred = lda.predict(x_test)
+df_pred = pd.DataFrame({"Real": y_test.values, "Predictie":y_pred})
+print("Predictia in setul de testare model liniar:\n", df_pred)
+
+# Evaluare model liniar pe setul de testare (matricea de confuzie + indicatori de acuretete)
+#matrice confuzie
+matrice_confuzie = confusion_matrix(y_test, y_pred)
+print("Matricea de confuzie:\n", matrice_confuzie)
+
+#acuratete globala
+acuratete_globala = accuracy_score(y_test, y_pred)
+print("Acuratetea globala: ", acuratete_globala)
+
+#acuratete medie
+acuratete_per_clasa = matrice_confuzie.diagonal() / matrice_confuzie.sum(axis=1)
+acuratete_medie = np.mean(acuratete_per_clasa)
+print("Acuratete medie: ", acuratete_medie)
+
+# Predictia in setul de aplicare model liniar
+y_pred_aplicare = lda.predict(x_train)
+df_pred_aplicare = pd.DataFrame({"Real": y_train.values, "Predictie": y_pred_aplicare})
+print("Predictia in setul de aplicare model liniar:\n", df_pred_aplicare)
+
+# Predictia in setul de testare model bayesian
+#model bayesian
+model_b = GaussianNB()
+model_b.fit(x_train, y_train)
+#predictia
+predictie_b_test = model_b.predict(x_test)
+print("Predictia in setul de testare model bayesian",predictie_b_test)
+
+# Evaluare model bayesian (matricea de confuzie + indicatori de acuretete)
+# Matricea de confuzie
+matrice_confuzie_b = confusion_matrix(y_test, predictie_b_test)
+print("Matricea de confuzie pentru modelul bayesian:\n", matrice_confuzie_b)
+
+# Acuratete globala
+acuratete_globala_b = accuracy_score(y_test, predictie_b_test)
+print("Acuratetea globala pentru modelul bayesian: ", acuratete_globala_b)
+
+# Acuratete medie
+acuratete_per_clasa_b = matrice_confuzie_b.diagonal() / matrice_confuzie_b.sum(axis=1)
+acuratete_medie_b = np.mean(acuratete_per_clasa_b)
+print("Acuratete medie pentru modelul bayesian: ", acuratete_medie_b)
+
+# Predictia in setul de aplicare model bayesian
+predictie_b_aplicare = model_b.predict(x_train)
+print("Predictie Bayes", predictie_b_aplicare)
+
+# Analiza Factoriala
+# importuri
+import pandas as pd
+from factor_analyzer import FactorAnalyzer
+from factor_analyzer.factor_analyzer import calculate_bartlett_sphericity
+from factor_analyzer.factor_analyzer import calculate_kmo
+import seaborn as sb
+import matplotlib.pyplot as plt
+
+# citire csv-uri
+date = pd.read_csv("factorial_analysis.csv")
+print(date)
+x = date.iloc[:,0:]
+print(x)
+
+# Analiza factorabilitatii - Bartlett
+chi_square, p_value = calculate_bartlett_sphericity(x)
+print("Factorabilitatea Barlett")
+print(f"Valoarea chi-square: {chi_square}")
+print(f"P-Value: {p_value}")
+
+# Analiza factorabilitatii - KMO
+kmo_all, kmo_model = calculate_kmo(x)
+print(f"Scorul KMO total: {kmo_model}")
+
+# Calcul varianta factori (cu/fara rotatie)
+# fara rotatie
+fa_fara_rotatie = FactorAnalyzer(n_factors=5, rotation=None)
+fa_fara_rotatie.fit(x)
+varianta_fara_rotatie = fa_fara_rotatie.get_factor_variance()
+print(f"Varianta factori fara rotatie: {varianta_fara_rotatie}")
+
+# cu rotatie
+fa_cu_rotatie = FactorAnalyzer(n_factors=5, rotation="varimax")
+fa_cu_rotatie.fit(x)
+varianta_cu_rotatie = fa_cu_rotatie.get_factor_variance()
+print(f"Varianta factori cu rotatie: {varianta_cu_rotatie}")
+
+# Calcul corelatii factoriale (cu/fara rotatie)
+# fara rotatie
+coreletii_factoriale_fara = fa_fara_rotatie.loadings_
+print(f"Corelatii factoriale fara rotatie: {coreletii_factoriale_fara}")
+
+#cu rotatie
+coreletii_factoriale_cu = fa_cu_rotatie.loadings_
+print(f"Corelatii factoriale cu rotatie: {coreletii_factoriale_cu}")
+
+# Trasare corelograma corelatii factoriale (cu/fara rotatie)
+# fara rotatie
+plt.figure(figsize=(10,8))
+sb.heatmap(coreletii_factoriale_fara, center=0, cmap="coolwarm", annot=True, xticklabels=[f"{i+1}" for i in range(0,coreletii_factoriale_fara.shape[1])], yticklabels=x.columns)
+plt.title("Corelograma factoriala fara rotatie")
+plt.xlabel("Componente")
+plt.ylabel("Variabile")
+plt.show()
+
+#cu rotatie
+plt.figure(figsize=(10,8))
+sb.heatmap(coreletii_factoriale_cu, center=0, cmap="coolwarm", annot=True, xticklabels=[f"{i+1}" for i in range(0, coreletii_factoriale_cu.shape[1])], yticklabels=x.columns)
+plt.title("Corelograma factoriala cu rotatie")
+plt.xlabel("Componente")
+plt.ylabel("Variabile")
+plt.show()
+
+# Trasare cercul corelatiilor (cu/fara rotatie)
+#fara rotatie
+x1 = coreletii_factoriale_fara[:, 0] # corelatiile cu factorul1
+y = coreletii_factoriale_fara[:, 1] # corelatiile cu factorul2
+
+fig, ax = plt.subplots(figsize=(6,6))
+
+circle = plt.Circle((0,0),1,color='b', fill=False, linestyle='dashed')
+ax.add_patch(circle)
+plt.scatter(x1,y)
+
+for i, label in enumerate(x.columns):
+    plt.text(x1[i], y[i], label, fontsize=9, ha='right', va='bottom')
+
+plt.axhline(0,color='black', linewidth=0.5) #linie orizontala la 0
+plt.axvline(0, color='black', linewidth=0.5) # linie verticala la 0
+plt.xlim(-1,1)
+plt.ylim(-1,1)
+plt.xlabel("Factor 1")
+plt.ylabel("Factor 2")
+plt.title("Cercul Corelatiilor fara rotatie")
+plt.grid()
+plt.show()
+
+# cu rotatie
+x1 = coreletii_factoriale_cu[:, 0]
+y = coreletii_factoriale_cu[:, 1]
+fig,ax = plt.subplots(figsize=(6,6))
+
+circle = plt.Circle((0,0),1, color='b', fill=False, linestyle='dashed')
+ax.add_patch(circle)
+plt.scatter(x1,y)
+
+for i, label in enumerate(x.columns):
+    plt.text(x1[i], y[i], label, fontsize=9, ha="right", va="bottom")
+
+plt.axhline(0, color="black", linewidth=0.5)
+plt.axvline(0, color="black", linewidth=0.5)
+plt.xlim(-1,1)
+plt.ylim(-1,1)
+plt.xlabel("Factor 1")
+plt.ylabel("Factor 2")
+plt.title("Cercul Corelatiilor cu rotatie")
+plt.grid()
+plt.show()
+
+# Calcul comunalitati si varianta specifica
+comunalitati = fa_cu_rotatie.get_communalities()
+varianta_specifica = 1-comunalitati
+print("Comunalitati cu rotatie: ", comunalitati)
+print("Varianta specifica: ", varianta_specifica)
+
+# Trasare corelograma comunalitati si varianta specifica
+plt.figure(figsize=(10,5))
+sb.barplot(x=x.columns, y=comunalitati)
+plt.title("Corelograma comunitati")
+plt.xticks(rotation=90)
+plt.ylabel("Variabile")
+plt.show()
+
+# Calcul scoruri (cu/fara rotatie)
+# fara rotatie
+scoruri_fara = fa_fara_rotatie.transform(x)
+scoruri_fara_df = pd.DataFrame(scoruri_fara, columns=[f"Scor{i+1}" for i in range(0,scoruri_fara.shape[1])])
+print("Scoruri fara rotatie", scoruri_fara_df)
+
+# cu rotatie
+scoruri_cu = fa_cu_rotatie.transform(x)
+scoruri_cu_df = pd.DataFrame(scoruri_cu, columns=[f"Scor{i+1}" for i in range(0, scoruri_cu.shape[1])])
+print("Scoruri cu rotatie", scoruri_cu_df)
+
+# Trasare plot scoruri
+# fara rotatie
+plt.figure(figsize=(10,8))
+plt.scatter(scoruri_fara[:, 0], scoruri_fara[:, 1], c="Blue", alpha=0.8)
+plt.title("Plot Scoruri Factoriale Fara Rotatie (Factor 1 vs Factor 2")
+plt.xlabel("Factor 1")
+plt.ylabel("Factor 2")
+plt.show()
+
+# cu rotatie
+plt.figure(figsize=(10,8))
+plt.scatter(scoruri_cu[:,0], scoruri_cu[:, 1], c="Red", alpha=0.8)
+plt.title("Plot Scoruri Factoriale Cu Rotatie (Factor 1 vs Factor 2)")
+plt.xlabel("Factor 1")
+plt.ylabel("Factor 2")
+plt.show()

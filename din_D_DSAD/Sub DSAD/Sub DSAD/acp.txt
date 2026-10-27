@@ -1,0 +1,233 @@
+import pandas as pd
+import numpy as np
+from util import *
+from sklearn.decomposition import PCA
+
+
+def execute():
+    tabel = pd.read_csv("dateIN\\date.csv", index_col=0)
+    nan_replace(tabel)
+
+    nume_variabile = list(tabel.columns)[0:]
+    print("nume variabile: ", nume_variabile)
+    instante = list(tabel.index)
+    print("instante: ", instante)
+    x = tabel[nume_variabile]
+    x = (x - np.mean(x, axis=0)) / np.std(x, axis=0)
+
+    # construire model ACP + rulare
+    model_acp = PCA()
+    model_acp.fit(x)
+
+    # interp rez
+    # vector de variante ale fiecarei componente principale
+    alpha = model_acp.explained_variance_
+    print("Alpha: ", alpha)
+    a = model_acp.components_  # vectorul de valori proprii ale matricei de covarianta
+    print("A: ", a)
+    c = model_acp.transform(x)
+    print("C: ", c)
+
+    m = len(alpha)
+    # print("m: ", m)
+    r_x_c = np.corrcoef(x, c, rowvar=False)[:m, m:]
+    etichete_componente = ["Comp" + str(i+1) for i in range(m)]
+
+    # varianta
+    tabel_varianta = tabelare_varianta(alpha, etichete_componente)
+    tabel_varianta.to_csv("dateOUT\\Varianta.csv")
+    plot_varianta(alpha)
+
+    # corelatii factoriale + plot corelatii
+    tabel_corelatii_fact = tabelare_matrice(r_x_c, nume_variabile, etichete_componente,
+                                            "dateOUT\\Corelatii_factoriale.csv")
+    corelograma(tabel_corelatii_fact)
+
+    plot_corelatii(tabel_corelatii_fact, "Comp1",
+                   "Comp2", "Plot corelatii Comp0-Comp1")
+    plot_corelatii(tabel_corelatii_fact, "Comp2",
+                   "Comp3", "Plot corelatii Comp2-Comp3")
+
+    # componente + plot componente
+    tabel_componente = tabelare_matrice(c, instante, etichete_componente,
+                                        "dateOUT\\Componente.csv")
+    plot_componente(tabel_componente, "Comp1", "Comp2",
+                    "Plot componente Comp1, Comp2")
+    plot_componente(tabel_componente, "Comp2", "Comp3",
+                    "Plot componente Comp2, Comp3")
+
+    # scoruri + plot scoruri
+    scoruri = c / np.sqrt(alpha)
+    tabel_scoruri = tabelare_matrice(scoruri, instante, etichete_componente,
+                                     "dateOUT\\Scoruri.csv")
+    plot_componente(tabel_scoruri, "Comp1", "Comp2", titlu="Plot scoruri")
+
+    # calcul cosinusuri
+    componente_patrat = c * c
+    cosin = np.transpose(componente_patrat.T /
+                         np.sum(componente_patrat, axis=1))
+    tabel_cosin = tabelare_matrice(
+        cosin, instante, etichete_componente, "dateOUT\\Cosin.csv")
+
+    # calcul contributii
+    beta = componente_patrat / np.sum(componente_patrat, axis=0)
+    tabel_contributii = tabelare_matrice(
+        beta, instante, etichete_componente, "dateOUT\\Contributii.csv")
+
+    # calcul comunalitati + corelograma comunalitati
+    comunalitati = np.cumsum(r_x_c * r_x_c, axis=1)
+    tabel_comunalitati = tabelare_matrice(comunalitati, nume_variabile, etichete_componente,
+                                          "dateOUT\\Comunalitati.csv")
+    corelograma(tabel_comunalitati, valMin=0, titlu="Comunalitati")
+
+    show()
+
+
+if __name__ == "__main__":
+    execute()
+
+
+
+############################################################################################################
+#######################
+############################################################################################################
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sb
+
+
+def nan_replace(t):
+    assert isinstance(t, pd.DataFrame)
+    nume_variabile = list(t.columns)
+
+    for each in nume_variabile:
+        if any(t[each].isna()):
+            if pd.api.types.is_numeric_dtype(t[each]):
+                t[each].fillna(t[each].mean(), inplace=True)
+            else:
+                modul = t[each].mode()[0]
+                t[each].fillna(modul, inplace=True)
+
+
+def tabelare_matrice(x, nume_linii=None, nume_coloane=None, out=None):
+    t = pd.DataFrame(x, nume_linii, nume_coloane)
+    if out is not None:
+        t.to_csv(out)
+
+    return t
+
+
+def corelograma(x, valMin=-1, valMax=1, titlu="Corelatii factoriale"):
+    fig = plt.figure(titlu, figsize=(9, 9))
+    ax = fig.add_subplot(1, 1, 1)
+
+    ax.set_title(titlu, fontdict={"fontsize": 16, "color": "b"})
+
+    ax_ = sb.heatmap(data=x,
+                     vmin=valMin, vmax=valMax,
+                     cmap="bwr", annot=True, ax=ax)
+    ax_.set_xticklabels(x.columns, ha="right", rotation=30)
+
+
+def plot_corelatii(x, var_x, var_y, titlu="Plot corelatii", aspect="auto"):
+    fig = plt.figure(titlu, figsize=(9, 9))
+    ax = fig.add_subplot(1, 1, 1)
+
+    ax.set_xlabel(var_x, fontdict={"fontsize": 12, "color": "b"})
+    ax.set_ylabel(var_y, fontdict={"fontsize": 12, "color": "b"})
+
+    ax.set_aspect(aspect)
+
+    theta = np.arange(0, 2*np.pi, 0.01)
+    ax.plot(np.cos(theta), np.sin(theta), color="b")
+
+    ax.axhline(0)
+    ax.axvline(0)
+
+    ax.scatter(x[var_x], x[var_y], color="r")
+
+    for i in range(len(x)):
+        ax.text(x[var_x].iloc[i], x[var_y].iloc[i], x.index[i])
+
+# acelasi grafic si pentru scoruri, dar se aplica pt componente/sqrt(alpha)
+
+
+def plot_componente(x, var_x, var_y, titlu="Plot componenete", aspect="auto"):
+    fig = plt.figure(titlu, figsize=(9, 9))
+    ax = fig.add_subplot(1, 1, 1)
+
+    # denumirile axelor
+    ax.set_xlabel(var_x, fontdict={"fontsize": 12, "color": "b"})
+    ax.set_ylabel(var_y, fontdict={"fontsize": 12, "color": "b"})
+
+    ax.set_aspect(aspect)
+    ax.scatter(x[var_x], x[var_y], color="r")
+
+    # punem denumiri "puricilor"
+    for i in range(len(x)):
+        ax.text(x[var_x].iloc[i], x[var_y].iloc[i], x.index[i])
+
+
+def tabelare_varianta(alpha, etichete_componente):
+    procent = alpha * 100 / sum(alpha)
+    tabel_varianta = pd.DataFrame(data={
+        "Varianta": alpha,
+        "Varianta cumulata": np.cumsum(alpha),
+        "Procent varianta": procent,
+        "Procent cumulat": np.cumsum(procent)
+    }, index=etichete_componente)
+
+    return tabel_varianta
+
+
+def plot_varianta(alpha, titlu="Plot varianta"):
+    fig = plt.figure(titlu, figsize=(9, 9))
+    ax = fig.add_subplot(1, 1, 1)
+
+    ax.set_xlabel("Componente", fontdict={"fontsize": 12, "color": "b"})
+    ax.set_ylabel("Varianta", fontdict={"fontsize": 12, "color": "b"})
+
+    # gradatiile componentelor pe axa orizontala
+    m = len(alpha)
+    gradatii = np.arange(1, m+1)
+    ax.set_xticks(gradatii)
+
+    ax.plot(gradatii, alpha)
+    # bulinele rosii pentru fiecare componenta
+    ax.scatter(gradatii, alpha, color="r")
+
+    # linia verde corespunzatoare y=1 pt criteriul kaiser
+    predicat = np.where(alpha > 1)
+    print("Predicat Kaiser", predicat)
+    print('Type predicat', type(predicat))
+    nr_comp_kaiser = len(predicat[0])
+    print("Nr comp Kaiser", nr_comp_kaiser)
+    ax.axhline(1, c="g", label="Kaiser")
+
+    # linia magenta pt procent acoperire
+    pondere = np.cumsum(alpha / sum(alpha))
+    predicat = np.where(pondere > 0.8)
+    nr_comp_procent = predicat[0][0] + 1
+    print("Predicat procent", predicat)
+    print('Type predicat', type(predicat))
+    print("nr comp procent: ", nr_comp_procent)
+    ax.axhline(alpha[nr_comp_procent-1], c="m", label="Procent acoperire")
+
+    # linia cyan pt criteriul cattell
+    eps = alpha[:(m - 1)] - alpha[1:]
+    sigma = eps[:(m - 2)] - eps[1:]
+    predicat = np.where(sigma < 0)
+    print("Predicat Cattell", predicat)
+    print('Type predicat', type(predicat))
+    nr_comp_cattell = predicat[0][0]+1
+    print("Nr comp Cattell", nr_comp_cattell)
+    ax.axhline(alpha[nr_comp_cattell-1], c="c", label="Cattell")
+
+    # legenda cu cele 3 criterii din partea dreapta sus
+    ax.legend()
+
+
+def show():
+    plt.show()

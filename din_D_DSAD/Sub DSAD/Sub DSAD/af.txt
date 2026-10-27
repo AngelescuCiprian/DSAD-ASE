@@ -1,0 +1,237 @@
+import numpy as np
+import pandas as pd
+import factor_analyzer as fact
+from util import *
+
+
+def execute():
+    tabel = pd.read_csv("dateIN\\date.csv", index_col=0)
+    nan_replace(tabel)
+
+    nume_variabile = list(tabel.columns)[0:]
+    print("nume variabile: ", nume_variabile)
+
+    x = tabel[nume_variabile].values
+    print("x: ", x)
+
+    #luam dimensiunile
+    n, m = np.shape(x)
+
+    etichete_factori = ["F" + str(i + 1) for i in range(m)]
+
+    # VALIDAREA MODELULUI: daca var initiale au in spate factori comuni (variabile latente) care sa explice variabilitatea
+    # comparam matricea de corelatii cu matricea unitate I
+    # I : testul Bartlett: H0: nu avem factori comuni, H1: avem factori comuni
+    # ceea ce in statistica numim testarea homoscedasticitatii
+    # daca varianta in cadrul grupurilor e egala
+    bartlett_test = fact.calculate_bartlett_sphericity(x)
+    print("Bartlett test: ", bartlett_test)
+    #testul bartlett intoarce un tuplu, ne intereseaza al 2lea element care este p-value
+
+    if bartlett_test[1] > 0.01:
+        print("Nu exista factori comuni")
+        exit(0)
+
+    # II : calcul index KMO(Kaiser, Meyer, Olkin)
+    # arata care variabile sunt mai putin corelate in rap cu celelalte
+    # ne specifica daca setul de date este potrivit pt af sau nu
+    kmo = fact.calculate_kmo(x)
+    print("kmo: ", kmo)
+
+    if kmo[1] < 0.5:
+        print("Nu exista factori comuni relevanti")
+        exit(0)
+
+    kmo_tabelar = pd.DataFrame(data={"IndexKMO": np.append(kmo[0], kmo[1])},
+                               index=nume_variabile + ["Total"])
+    kmo_tabelar.to_csv("dateOUT\\KMOTabelar.csv")
+    corelograma(kmo_tabelar, valMin=0, titlu="Index KMO")
+
+    # CONSTRUIRE MODEL AF
+    # daca avem rotatie, inlocuim rotatie cu ceea ce ni se precizeaza
+    rotatie = ""
+    if rotatie == "":
+        model_fact = fact.FactorAnalyzer(n_factors=m, rotation=None)
+    else:
+        model_fact = fact.FactorAnalyzer(n_factors=m, rotation=rotatie)
+
+    model_fact.fit(x)
+
+    # preluare si afisare rez
+    # varianta
+    alpha = model_fact.get_factor_variance()[0] # e un tuplu si luam primul elem care e valoarea
+
+    tabel_varianta = tabelare_varianta(alpha, etichete_factori)
+    tabel_varianta.to_csv("dateOUT\\Varianta_F"+rotatie+".csv")
+    plot_varianta(alpha)
+
+    # corelatii factoriale dintre variabile initiale si factori + corelograma corelatii
+    # vedem care sunt leg si cum contribuie var initiale in compunerea factorilor
+    loadings = model_fact.loadings_
+    tabel_loadings = tabelare_matrice(loadings, nume_variabile, etichete_factori, "dateOUT\\Loadings_"+rotatie+".csv")
+    corelograma(tabel_loadings)
+
+    # plot corelatii pt primii 2 factori
+    plot_corelatii(tabel_loadings, "F1", "F2", "Plot corelatii F1, F2")
+    # daca vreau toate ploturile :
+    # for i in range(1, m-1):
+    #     for j in range(i+1, m):
+    #         plot_corelatii(tabel_loadings, "F"+str(i), "F"+str(j), "Plot corelatii F" + str(i) +", F"+str(j))
+
+
+    # calcul scoruri
+    scoruri_fact = model_fact.transform(x)
+    tabel_scoruri = tabelare_matrice(scoruri_fact, tabel.index, etichete_factori, "dateOUT\\ScoruriFact_"+rotatie+".csv")
+
+    # plot scoruri
+    plot_componente(tabel_scoruri, "F1", "F2", "Plot scoruri factoriale")
+
+    # calcul comunalitati + corelograma comunalitati
+    comunalitati = model_fact.get_communalities()
+    tabel_comunalitati = pd.DataFrame(data={"Comunalitati": comunalitati}, index=nume_variabile)
+    tabel_comunalitati.to_csv("dateOUT\\Comunalitati.csv")
+    corelograma(tabel_comunalitati, valMin=0, titlu="Comunalitati")
+
+    show()
+
+
+if __name__=="__main__":
+    execute()
+
+
+
+
+
+############################################################################################################
+#######################
+############################################################################################################
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sb
+
+def nan_replace(t):
+    assert isinstance(t, pd.DataFrame)
+    nume_variabile = list(t.columns)
+
+    for each in nume_variabile:
+        if any(t[each].isna()):
+            if pd.api.types.is_numeric_dtype(t[each]):
+                t[each].fillna(t[each].mean(), inplace=True)
+            else:
+                modul = t[each].mode()[0]
+                t[each].fillna(modul, inplace=True)
+
+
+def tabelare_varianta(alpha, etichete_componente):
+    procent = alpha * 100 / sum(alpha)
+    tabel_varianta = pd.DataFrame(data={
+        "Varianta": alpha,
+        "Varianta cumulata": np.cumsum(alpha),
+        "Procent": procent,
+        "Procent cumulat": np.cumsum(procent)
+    }, index=etichete_componente)
+    return tabel_varianta
+
+def plot_varianta(alpha, titlu="Plot varianta"):
+    fig = plt.figure(titlu, figsize=(9,9))
+    ax = fig.add_subplot(1, 1, 1)
+
+    ax.set_xlabel("Componente", fontdict={"fontsize": 12, "color": "b"})
+    ax.set_ylabel("Varianta", fontdict={"fontsize": 12, "color": "b"})
+
+    # gradatiile componentelor pe axa orizontala
+    m = len(alpha)
+    gradatii = np.arange(1, m+1)
+    ax.set_xticks(gradatii)
+
+    ax.plot(gradatii, alpha)
+    ax.scatter(gradatii, alpha, color="r") # bulinele rosii pentru fiecare componenta
+
+    # linia verde corespunzatoare y=1 pt criteriul kaiser
+    predicat = np.where(alpha > 1)
+    print("Predicat Kaiser", predicat)
+    print('Type predicat', type(predicat))
+    nr_comp_kaiser = len(predicat[0])
+    print("Nr comp Kaiser", nr_comp_kaiser)
+    ax.axhline(1, c="g", label="Kaiser")
+
+    # linia magenta pt procent acoperire
+    pondere = np.cumsum(alpha / sum(alpha))
+    predicat = np.where(pondere > 0.8)
+    nr_comp_procent = predicat[0][0] + 1
+    print("Predicat procent", predicat)
+    print('Type predicat', type(predicat))
+    print("nr comp procent: ", nr_comp_procent)
+    ax.axhline(alpha[nr_comp_procent-1], c="m", label="Procent acoperire")
+
+    # linia cyan pt criteriul cattell
+    eps = alpha[:(m - 1)] - alpha[1:]
+    sigma = eps[:(m - 2)] - eps[1:]
+    predicat = np.where(sigma < 0)
+    print("Predicat Cattell", predicat)
+    print('Type predicat', type(predicat))
+    nr_comp_cattell=predicat[0][0]+1
+    print("Nr comp Cattell", nr_comp_cattell)
+    ax.axhline(alpha[nr_comp_cattell-1], c="c", label="Cattell")
+
+    # legenda cu cele 3 criterii din partea dreapta sus
+    ax.legend()
+
+
+def tabelare_matrice(x, nume_linii=None, nume_coloane=None, out=None):
+    t = pd.DataFrame(x, nume_linii, nume_coloane)
+    if out is not None:
+        t.to_csv(out)
+    return t
+
+
+def corelograma(x, valMin=-1, valMax=1, titlu="Corelatii factoriale"):
+    fig = plt.figure(titlu, figsize=(9, 9))
+    ax = fig.add_subplot(1, 1, 1)
+
+    ax.set_title(titlu, fontdict={"fontsize": 14, "color": "b"})
+
+    ax_ = sb.heatmap(data=x, vmin=valMin, vmax=valMax, cmap="bwr",
+                     annot=True, ax=ax)
+    ax_.set_xticklabels(labels=x.columns, ha="right", rotation=30)
+
+
+def plot_corelatii(x, var_x, var_y, titlu="Plot corelatii", aspect="auto"):
+    fig = plt.figure(titlu, figsize=(9, 9))
+    ax = fig.add_subplot(1, 1, 1)
+
+    ax.set_xlabel(var_x, fontdict={"fontsize": 12, "color": "b"})
+    ax.set_ylabel(var_y, fontdict={"fontsize": 12, "color": "b"})
+
+    ax.set_aspect(aspect)
+
+    theta = np.arange(0, 2*np.pi, 0.01)
+    ax.plot(np.cos(theta), np.sin(theta), c="b")
+
+    ax.axhline(0)
+    ax.axvline(0)
+
+    ax.scatter(x[var_x], x[var_y], c="r")
+
+    for i in range(len(x)):
+        ax.text(x[var_x].iloc[i], x[var_y].iloc[i], x.index[i])
+
+
+def plot_componente(x, var_x, var_y, titlu="Plot componente", aspect="auto"):
+    fig = plt.figure(titlu, figsize=(9, 9))
+    ax = fig.add_subplot(1, 1, 1)
+
+    ax.set_xlabel(var_x, fontdict={"fontsize": 12, "color": "b"})
+    ax.set_ylabel(var_y, fontdict={"fontsize": 12, "color": "b"})
+
+    ax.set_aspect(aspect)
+
+    ax.scatter(x[var_x], x[var_y], c="r")
+
+    for i in range(len(x)):
+        ax.text(x[var_x].iloc[i], x[var_y].iloc[i], x.index[i])
+
+def show():
+    plt.show()
