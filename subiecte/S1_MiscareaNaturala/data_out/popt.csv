@@ -1,0 +1,183 @@
+Country_Number,Country,Code,Cluster
+4,"Afghanistan, Islamic Republic of",AFG,C1
+8,"Albania, Republic of",ALB,C2
+12,"Algeria, People's Democratic Republic of",DZA,C2
+24,"Angola, Republic of",AGO,C1
+31,"Azerbaijan, Republic of",AZE,C2
+32,"Argentina, Argentine Republic",ARG,C2
+36,"Australia, Commonwealth of",AUS,C2
+40,"Austria, Republic of",AUT,C2
+44,"Bahamas, Commonwealth of the",BHS,C2
+48,"Bahrain, Kingdom of",BHR,C2
+50,"Bangladesh, People's Republic of",BGD,C2
+51,"Armenia, Republic of",ARM,C2
+52,Barbados,BRB,C2
+56,"Belgium, Kingdom of",BEL,C2
+64,"Bhutan, Kingdom of",BTN,C2
+68,"Bolivia, Republic of",BOL,C2
+70,Bosnia and Herzegovina,BIH,C2
+72,"Botswana, Republic of",BWA,C2
+76,"Brazil, Federative Republic of",BRA,C2
+84,Belize,BLZ,C2
+90,Solomon Islands,SLB,C2
+96,Brunei Darussalam,BRN,C2
+100,"Bulgaria, Republic of",BGR,C2
+104,"Myanmar, Union of",MMR,C2
+108,"Burundi, Republic of",BDI,C1
+112,"Belarus, Republic of",BLR,C2
+116,"Cambodia, Kingdom of",KHM,C2
+120,"Cameroon, Republic of",CMR,C1
+124,Canada,CAN,C2
+132,"Cape Verde, Republic of",CPV,C2
+140,Central African Republic,CAF,C1
+144,"Sri Lanka, Democratic Socialist Republic of",LKA,C2
+148,"Chad, Republic of",TCD,C1
+152,"Chile, Republic of",CHL,C2
+156,"China, People's Republic of",CHN,C2
+170,"Colombia, Republic of",COL,C2
+174,"Comoros, Union of the",COM,C1
+178,"Congo, Republic of the",COG,C1
+180,"Congo, Democratic Republic of the",COD,C1
+188,"Costa Rica, Republic of",CRI,C2
+191,"Croatia, Republic of",HRV,C2
+192,"Cuba, Republic of",CUB,C2
+196,"Cyprus, Republic of",CYP,C2
+203,Czech Republic,CZE,C2
+204,"Benin, Republic of",BEN,C1
+208,"Denmark, Kingdom of",DNK,C2
+214,Dominican Republic,DOM,C2
+218,"Ecuador, Republic of",ECU,C2
+222,"El Salvador, Republic of",SLV,C2
+226,"Equatorial Guinea, Republic of",GNQ,C1
+231,"Ethiopia, Federal Democratic Republic of",ETH,C1
+232,"Eritrea, State of",ERI,C1
+233,"Estonia, Republic of",EST,C2
+242,"Fiji, Republic of the Fiji Islands",FJI,C2
+246,"Finland, Republic of",FIN,C2
+250,"France, French Republic",FRA,C2
+262,"Djibouti, Republic of",DJI,C1
+266,"Gabon, Gabonese Republic",GAB,C1
+268,Georgia,GEO,C2
+270,"Gambia, Republic of the",GMB,C1
+275,"Palestinian Territory, Occupied",PSE,C2
+276,"Germany, Federal Republic of",DEU,C2
+288,"Ghana, Republic of",GHA,C1
+296,"Kiribati, Republic of",KIR,C2
+300,"Greece, Hellenic Republic",GRC,C2
+308,Grenada,GRD,C2
+320,"Guatemala, Republic of",GTM,C2
+324,"Guinea, Republic of",GIN,C1
+328,"Guyana, Co-operative Republic of",GUY,C2
+332,"Haiti, Republic of",HTI,C1
+340,"Honduras, Republic of",HND,C2
+348,"Hungary, Republic of",HUN,C2
+352,"Iceland, Republic of",ISL,C2
+356,"India, Republic of",IND,C2
+360,"Indonesia, Republic of",IDN,C2
+364,"Iran, Islamic Republic of",IRN,C2
+368,"Iraq, Republic of",IRQ,C2
+372,Ireland,IRL,C2
+376,"Israel, State of",ISR,C2
+380,"Italy, Italian Republic",ITA,C2
+384,"Cote d'Ivoire, Republic of",CIV,C1
+388,Jamaica,JAM,C2
+392,Japan,JPN,C2
+398,"Kazakhstan, Republic of",KAZ,C2
+400,"Jordan, Hashemite Kingdom of",JOR,C2
+404,"Kenya, Republic of",KEN,C1
+408,"Korea, Democratic People's Republic of",PRK,C2
+410,"Korea, Republic of",KOR,C2
+414,"Kuwait, State of",KWT,C2
+417,Kyrgyz Republic,KGZ,C2
+418,Lao People's Democratic Republic,LAO,C2
+422,"Lebanon, Lebanese Republic",LBN,C2
+426,"Lesotho, Kingdom of",LSO,C1
+428,"Latvia, Republic of",LVA,C2
+430,"Liberia, Republic of",LBR,C1
+434,Libyan Arab Jamahiriya,LBY,C2
+440,"Lithuania, Republic of",LTU,C2
+442,"Luxembourg, Grand Duchy of",LUX,C2
+450,"Madagascar, Republic of",MDG,C1
+454,"Malawi, Republic of",MWI,C1
+458,Malaysia,MYS,C2
+462,"Maldives, Republic of",MDV,C2
+466,"Mali, Republic of",MLI,C1
+470,"Malta, Republic of",MLT,C2
+478,"Mauritania, Islamic Republic of",MRT,C1
+480,"Mauritius, Republic of",MUS,C2
+484,"Mexico, United Mexican States",MEX,C2
+496,Mongolia,MNG,C2
+498,"Moldova, Republic of",MDA,C2
+499,"Montenegro, Republic of",MNE,C2
+504,"Morocco, Kingdom of",MAR,C2
+508,"Mozambique, Republic of",MOZ,C1
+512,"Oman, Sultanate of",OMN,C2
+516,"Namibia, Republic of",NAM,C1
+524,"Nepal, State of",NPL,C2
+528,"Netherlands, Kingdom of the",NLD,C2
+548,"Vanuatu, Republic of",VUT,C2
+554,New Zealand,NZL,C2
+558,"Nicaragua, Republic of",NIC,C2
+562,"Niger, Republic of",NER,C1
+566,"Nigeria, Federal Republic of",NGA,C1
+578,"Norway, Kingdom of",NOR,C2
+583,"Micronesia, Federated States of",FSM,C2
+586,"Pakistan, Islamic Republic of",PAK,C2
+591,"Panama, Republic of",PAN,C2
+598,"Papua New Guinea, Independent State of",PNG,C1
+600,"Paraguay, Republic of",PRY,C2
+604,"Peru, Republic of",PER,C2
+608,"Philippines, Republic of the",PHL,C2
+616,"Poland, Republic of",POL,C2
+620,"Portugal, Portuguese Republic",PRT,C2
+624,"Guinea-Bissau, Republic of",GNB,C1
+626,"Timor-Leste, Democratic Republic of",TLS,C2
+630,"Puerto Rico, Commonwealth of",PRI,C2
+634,"Qatar, State of",QAT,C2
+642,Romania,ROU,C2
+643,Russian Federation,RUS,C2
+646,"Rwanda, Republic of",RWA,C1
+662,Saint Lucia,LCA,C2
+670,Saint Vincent and the Grenadines,VCT,C2
+678,"Sao Tome and Principe, Democratic Republic of",STP,C2
+682,"Saudi Arabia, Kingdom of",SAU,C2
+686,"Senegal, Republic of",SEN,C1
+688,"Serbia, Republic of",SRB,C2
+694,"Sierra Leone, Republic of",SLE,C1
+702,"Singapore, Republic of",SGP,C2
+703,Slovakia (Slovak Republic),SVK,C2
+704,"Vietnam, Socialist Republic of",VNM,C2
+705,"Slovenia, Republic of",SVN,C2
+706,"Somalia, Somali Republic",SOM,C1
+710,"South Africa, Republic of",ZAF,C2
+716,"Zimbabwe, Republic of",ZWE,C1
+724,"Spain, Kingdom of",ESP,C2
+728,South Sudan,SSD,C1
+740,"Suriname, Republic of",SUR,C2
+748,"Swaziland, Kingdom of",SWZ,C1
+752,"Sweden, Kingdom of",SWE,C2
+756,"Switzerland, Swiss Confederation",CHE,C2
+760,Syrian Arab Republic,SYR,C2
+762,"Tajikistan, Republic of",TJK,C2
+764,"Thailand, Kingdom of",THA,C2
+768,"Togo, Togolese Republic",TGO,C1
+776,"Tonga, Kingdom of",TON,C2
+780,"Trinidad and Tobago, Republic of",TTO,C2
+784,United Arab Emirates,ARE,C2
+788,"Tunisia, Tunisian Republic",TUN,C2
+792,"Turkey, Republic of",TUR,C2
+795,Turkmenistan,TKM,C2
+800,"Uganda, Republic of",UGA,C1
+804,Ukraine,UKR,C2
+807,"Macedonia, The Former Yugoslav Republic of",MKD,C2
+818,"Egypt, Arab Republic of",EGY,C2
+826,United Kingdom of Great Britain & Northern Ireland,GBR,C2
+834,"Tanzania, United Republic of",TZA,C1
+840,United States of America,USA,C2
+854,Burkina Faso,BFA,C1
+858,"Uruguay, Eastern Republic of",URY,C2
+860,"Uzbekistan, Republic of",UZB,C2
+862,"Venezuela, Bolivarian Republic of",VEN,C2
+882,"Samoa, Independent State of",WSM,C2
+887,Yemen,YEM,C1
+894,"Zambia, Republic of",ZMB,C1
