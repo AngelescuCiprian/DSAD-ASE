@@ -53,11 +53,3 @@ Pachete: `pandas`, `numpy`, `matplotlib`, `scipy`, `scikit-learn`.
 
 A + oficiu = 5 puncte. Detalii și toate cerințele ordonate pe tipuri: [subiecte/README.md](subiecte/README.md).
 
-## Progres
-
-- [x] Partea A – seminariile 1–3, exerciții Magazine + Ferme
-- [x] S1_2023 A1 (rezolvat singur)
-- [ ] S1_2023 A2 → S2_2024 A → S1 A → S2 A (media ponderată)
-- [ ] Subiectele din poze (de generat date de exercițiu)
-- [ ] ACP: interpretarea componentelor (`r`, `c`), cercul corelațiilor
-- [ ] Analiza de clusteri (Ward) – apare în 4 din 9 subiecte
