@@ -7,6 +7,10 @@ Testul acoperă **doar partea de pandas** (seminariile 1–3): 5 cerințe de tip
 | [S1_1091_Industrie](S1_1091_Industrie) | ✅ `Industrie.csv`, `PopulatieLocalitati.csv` | rezolvat, toate 5 cerințele identice cu exemplele din enunț |
 | [S2_1091_PIB](S2_1091_PIB) | ⚠️ date de test generate (originalele lipsesc) | rezolvat, toate exemplele din enunț ies exact pe datele de test |
 
+## Modele de practică
+
+3 modele în același stil, cu date și rezolvări: [practica/](practica) (P1 Vot, P2 Alcool, P3 Șomaj).
+
 ## Ce concepte cer (toate din seminariile 1–3)
 
 | Cerință | S1 (Industrie) | S2 (PIB) |
