@@ -17,7 +17,7 @@ DSAD-ASE/
 │   └── Seminar04_ACP_ConsumAlimentar/   ← primul seminar de ACP
 ├── teste/                        ← modele de TEST (seminariile 1–4, fără analiză multivariată)
 │   ├── S1_1091_Industrie/        ← enunț + date + rezolvare, toate 5 cerințele verificate
-│   └── S2_1091_PIB/              ← enunț + rezolvare (lipsesc gdp.csv și populatie.csv)
+│   └── S2_1091_PIB/              ← enunț + date de TEST (generate) + rezolvare
 ├── subiecte/
 │   ├── README.md                 ← TIPARUL subiectelor + toate cerințele A ordonate pe tipuri
 │   ├── S1_2023_MiscareaNaturala/ ← enunț + date + rezolvare A + B (ACP)

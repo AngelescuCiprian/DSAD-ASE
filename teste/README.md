@@ -5,7 +5,7 @@ Testul acoperă **doar partea de pandas** (seminariile 1–3): 5 cerințe de tip
 | Test | Date | Status |
 |---|---|---|
 | [S1_1091_Industrie](S1_1091_Industrie) | ✅ `Industrie.csv`, `PopulatieLocalitati.csv` | rezolvat, toate 5 cerințele identice cu exemplele din enunț |
-| [S2_1091_PIB](S2_1091_PIB) | ❌ lipsesc `gdp.csv` și `populatie.csv` | rezolvat pe structura dedusă din enunț, testat pe date de probă |
+| [S2_1091_PIB](S2_1091_PIB) | ⚠️ date de test generate (originalele lipsesc) | rezolvat, toate exemplele din enunț ies exact pe datele de test |
 
 ## Ce concepte cer (toate din seminariile 1–3)
 
