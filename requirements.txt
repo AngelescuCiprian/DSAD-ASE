@@ -1,0 +1,9 @@
+# Tot ce trebuie pentru DSAD (seminarii, teste, subiecte)
+pandas
+numpy
+scipy
+matplotlib
+seaborn
+# scikit-learn sub 1.8: factor_analyzer 0.5.1 nu merge cu 1.8+ (TypeError: force_all_finite)
+scikit-learn>=1.6,<1.8
+factor_analyzer

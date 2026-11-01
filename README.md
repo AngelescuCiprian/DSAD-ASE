@@ -44,7 +44,12 @@ python rezolvare_A.py     # scrie în data_out/
 python rezolvare_B.py     # scrie în data_out/ + deschide graficele (le salvează și ca PNG)
 ```
 
-Pachete: `pandas`, `numpy`, `matplotlib`, `scipy`, `scikit-learn`.
+Instalare (o singură dată):
+
+```bash
+py -m pip install -r requirements.txt
+py verifica_instalare.py
+```
 
 ## Tiparul subiectului (pe scurt)
 
