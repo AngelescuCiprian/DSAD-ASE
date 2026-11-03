@@ -12,6 +12,8 @@ Testul acoperă **doar partea de pandas** (seminariile 1–3): 5 cerințe de tip
 
 3 modele în același stil, cu date și rezolvări: [practica/](practica) (P1 Vot, P2 Alcool, P3 Șomaj).
 
+3 modele pe tiparul testului dat anul acesta (S1_1085): [practica_1085/](practica_1085) (M1 Agricultură, M2 Sănătate, M3 Comerț).
+
 ## Ce concepte cer (toate din seminariile 1–3)
 
 | Cerință | S1 (Industrie) | S2 (PIB) |
