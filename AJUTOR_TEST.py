@@ -1,7 +1,5 @@
 """
-=====================================================================
- AJUTOR TEST DSAD (pandas) - tine-l deschis langa subiect
-=====================================================================
+
  Ruleaza:   python AJUTOR_TEST.py            -> toate sectiunile
             python AJUTOR_TEST.py 6 13       -> doar sectiunile 6 si 13
  Fiecare sectiune ruleaza pe un MINI-tabel (7 localitati, 4 judete) ca sa
