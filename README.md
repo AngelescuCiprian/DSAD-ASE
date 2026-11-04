@@ -8,6 +8,7 @@ Materiale de studiu pentru DSAD: seminariile cu profesorul, subiecte din anii tr
 
 ```
 DSAD-ASE/
+├── AJUTOR_TEST.py                ← ⭐ pentru TEST: 19 șabloane care rulează pe mini-date + „când nu-ți iese”
 ├── docs/
 │   ├── CHEATSHEET_FINAL.md       ← ⭐ pentru TEST: șablon pe fiecare tip de cerință + ce faci când nu-ți iese
 │   ├── HARTA_SEMINARII.md        ← ⭐ open book: ce găsești în ce seminar, cu numerele de linie
