@@ -1,7 +1,10 @@
 # Seminarii
 
+Originalele profului (grupele 1073/1075) sunt în [originale_prof](originale_prof). Harta lor, cu numerele de linie: [docs/HARTA_SEMINARII.md](../docs/HARTA_SEMINARII.md).
+
 | Seminar | Temă | Ce se învață |
 |---|---|---|
+| [Seminar1_1075](originale_prof/Seminar1_1075) | Tema1_1 – indicatori teritoriali | numpy: valori lipsă, standardizare, covarianță/corelație totale și pe grupe |
 | [Seminar02_Etnii](Seminar02_Etnii) | Tema2_1 – populația pe etnii | `read_csv`, `nan_replace_df`, merge, groupby pe județ/regiune, procente cu `apply(axis=1)` |
 | [Seminar03_IndustriaAlimentara](Seminar03_IndustriaAlimentara) | Tema2_4 – angajați în industria alimentară | filtrare, procente, merge + groupby, `idxmax`, medie ponderată |
 | [Seminar04_ACP_ConsumAlimentar](Seminar04_ACP_ConsumAlimentar) | ACP pe consumul alimentar | `acp`, `tabelare_varianta`, Kaiser, procent de varianță |

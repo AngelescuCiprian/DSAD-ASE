@@ -9,9 +9,12 @@ Materiale de studiu pentru DSAD: seminariile cu profesorul, subiecte din anii tr
 ```
 DSAD-ASE/
 ├── docs/
+│   ├── CHEATSHEET_FINAL.md       ← ⭐ pentru TEST: șablon pe fiecare tip de cerință + ce faci când nu-ți iese
+│   ├── HARTA_SEMINARII.md        ← ⭐ open book: ce găsești în ce seminar, cu numerele de linie
 │   ├── CHEATSHEET_pandas.md      ← tot ce trebuie pentru partea A (merge, groupby, axis, capcane)
 │   └── ACP_explicat.md           ← Analiza în Componente Principale, de la zero
 ├── seminarii/
+│   ├── originale_prof/           ← Seminar1_1075, Seminar2_1073, Seminar3_1073 exact cum le-a dat profu
 │   ├── Seminar02_Etnii/          ← merge, groupby, procente (Tema2_1)
 │   ├── Seminar03_IndustriaAlimentara/   ← Tema2_4 + rezolvarea mea (rezolvare_ciprian.py)
 │   └── Seminar04_ACP_ConsumAlimentar/   ← primul seminar de ACP
@@ -20,7 +23,7 @@ DSAD-ASE/
 │   ├── S1_1091_Industrie/        ← enunț + date + rezolvare, toate 5 cerințele verificate
 │   ├── S2_1091_PIB/              ← enunț + date de TEST (generate) + rezolvare
 │   ├── practica/                 ← 3 modele de practică (Vot, Alcool, Șomaj) cu date + rezolvări
-│   └── practica_1085/            ← 3 modele pe tiparul S1_1085 (Agricultură, Sănătate, Comerț)
+│   └── practica_1085/            ← 5 modele pe tiparul S1_1085 (Agricultură, Sănătate, Comerț, Turism, Energie)
 ├── subiecte/
 │   ├── README.md                 ← TIPARUL subiectelor + toate cerințele A ordonate pe tipuri
 │   ├── S1_2023_MiscareaNaturala/ ← enunț + date + rezolvare A + B (ACP)
