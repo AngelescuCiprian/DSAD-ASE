@@ -6,6 +6,7 @@ Testul acoperă **doar partea de pandas** (seminariile 1–3): 5 cerințe de tip
 |---|---|---|
 | [S1_1091_Industrie](S1_1091_Industrie) | ✅ `Industrie.csv`, `PopulatieLocalitati.csv` | rezolvat, toate 5 cerințele identice cu exemplele din enunț |
 | [S1_1085_Firme](S1_1085_Firme) | ⚠️ `I2014.csv` generat, populația reală | **dat de prof anul acesta**; rezolvat, toate exemplele ies exact |
+| [S1_1073_MiscareaNaturala](S1_1073_MiscareaNaturala) | ✅ originale | **testul grupei 1073** (5 nov.); rezolvat, toate exemplele ies exact |
 | [S1_1086_Energie](S1_1086_Energie) | ✅ `EnergLoc.csv`, `RO_NUTS.csv` (originale) | **dat la 1086 săptămâna asta**; rezolvat, toate exemplele ies exact |
 | [S2_1091_PIB](S2_1091_PIB) | ⚠️ date de test generate (originalele lipsesc) | rezolvat, toate exemplele din enunț ies exact pe datele de test |
 
